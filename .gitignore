@@ -1,0 +1,42 @@
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.lock
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+
+# Env
+.env
+.envrc
+*.yaml
+*.nix
+*.db
+*.sqlite
+*.dot.png
+*.dot
+
+# Logs
+*log/*
+.log
+*logs*
+log/**
+*code_output*
+startup_files.txt
+
+# Misc
+**.egg-info**
+*.egg-info*
+*code_output/*
+**/__pycache__/**
+**.pyc
+.idea/
+tests/tmp/
+site/
+*.py[cod]
+__pycache__/
+.venv/
+
