@@ -3,7 +3,7 @@ _min_copier_version: "9"
 _envops:
   autoescape: false
   keep_trailing_newline: true
-_subdirectory: project/python_project
+_subdirectory: templateer/templates/python_project
 _templates_suffix: .jinja
 _preserve_symlinks: true
 _jinja_extensions:

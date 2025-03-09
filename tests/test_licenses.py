@@ -27,7 +27,7 @@ if errors:
 
 
 env = Environment()
-template = env.from_string(Path("project/LICENSE.jinja").read_text())
+template = env.from_string(Path("templateer/templates/python_project/LICENSE.jinja").read_text())
 
 
 for license in licenses:
