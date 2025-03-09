@@ -1,0 +1,3 @@
+/home/andrew/Documents/Projects/templateer/devenv.lock
+/home/andrew/Documents/Projects/templateer/devenv.nix
+/home/andrew/Documents/Projects/templateer/devenv.yaml

@@ -1,42 +1,26 @@
-# Devenv
-.devenv*
-devenv.local.nix
-devenv.lock
-
-# direnv
-.direnv
-
-# pre-commit
-.pre-commit-config.yaml
-
-# Env
-.env
-.envrc
-*.yaml
-*.nix
-*.db
-*.sqlite
-*.dot.png
-*.dot
-
-# Logs
-*log/*
-.log
-*logs*
-log/**
-*code_output*
-startup_files.txt
-
-# Misc
-**.egg-info**
-*.egg-info*
-*code_output/*
-**/__pycache__/**
-**.pyc
+# editors
 .idea/
-tests/tmp/
-site/
-*.py[cod]
-__pycache__/
-.venv/
+.vscode/
 
+# python
+*.egg-info/
+*.py[cod]
+.venv/
+.venvs/
+/build/
+/dist/
+*.env
+
+# tools
+.coverage*
+/.pdm-build/
+/htmlcov/
+/site/
+uv.lock
+
+# cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/

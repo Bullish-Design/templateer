@@ -11,41 +11,60 @@ defaults:
     shell: bash
 
 env:
-  LANG: "en_US.utf-8"
-  LC_ALL: "en_US.utf-8"
-  PYTHONIOENCODING: "UTF-8"
+  LANG: en_US.utf-8
+  LC_ALL: en_US.utf-8
+  PYTHONIOENCODING: UTF-8
   PYTHON_VERSIONS: ""
 
 jobs:
 
-  test-filenames:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Test file names
-      run: bash tests/test_filenames.sh
+  quality:
 
-  test-licenses:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Configure Git
-      run: |
-        git config --global init.defaultBranch main
-        git config --global user.email "bullishdesignengineering@gmail.com"
-        git config --global user.name "Bullish Design"
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
+
     - name: Setup uv
       uses: astral-sh/setup-uv@v5
-    - name: Test licenses
-      run: uv run --with jinja2 --with pyyaml --with reuse python tests/test_licenses.py
+      with:
+        enable-cache: true
+        cache-dependency-glob: pyproject.toml
 
-  test-project:
+    - name: Install dependencies
+      run: make setup
+
+    - name: Check if the documentation builds correctly
+      run: make check-docs
+
+    - name: Check the code quality
+      run: make check-quality
+
+    - name: Check if the code is correctly typed
+      run: make check-types
+
+    - name: Check for breaking changes in the API
+      run: make check-api
+
+    - name: Store objects inventory for tests
+      uses: actions/upload-artifact@v4
+      with:
+        name: objects.inv
+        path: site/objects.inv
+
+  tests:
+
+    needs:
+    - quality
     strategy:
       matrix:
         os:
@@ -59,9 +78,16 @@ jobs:
         - "3.12"
         - "3.13"
         - "3.14"
-
+        resolution:
+        - highest
+        - lowest-direct
+        exclude:
+        - os: macos-latest
+          resolution: lowest-direct
+        - os: windows-latest
+          resolution: lowest-direct
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.python-version == '3.14'}}
+    continue-on-error: ${{ matrix.python-version == '3.14' }}
 
     steps:
     - name: Checkout
@@ -69,12 +95,6 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-
-    - name: Configure Git
-      run: |
-        git config --global init.defaultBranch main
-        git config --global user.email "bullishdesignengineering@gmail.com"
-        git config --global user.name "Bullish Design"
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -86,47 +106,19 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-        cache-dependency-glob: project/pyproject.toml.jinja
+        cache-dependency-glob: pyproject.toml
+        cache-suffix: ${{ matrix.resolution }}
 
-    - name: Install Copier
+    - name: Install dependencies
       env:
-        PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
-      run: uv tool install copier --with copier-templates-extensions
+        UV_RESOLUTION: ${{ matrix.resolution }}
+      run: make setup
 
-    - name: Test project generation and workflow
-      run: bash tests/test_project.sh
-
-  test-project-ci:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - name: Download objects inventory
+      uses: actions/download-artifact@v4
       with:
-        fetch-depth: 0
-        fetch-tags: true
+        name: objects.inv
+        path: site/
 
-    - name: Configure Git
-      run: |
-        git config --global init.defaultBranch main
-        git config --global user.email "bullishdesignengineering@gmail.com"
-        git config --global user.name "Bullish Design"
-
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-
-    - name: Setup uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-        cache-dependency-glob: project/pyproject.toml.jinja
-
-    - name: Install Copier
-      run: uv tool install copier --with copier-templates-extensions
-
-    - name: Trigger and wait project's own CI
-      env:
-        GH_TOKEN: ${{ secrets.TESTING_PUSH_TOKEN }}
-      run: bash tests/wait_ci.sh
+    - name: Run the test suite
+      run: make test
