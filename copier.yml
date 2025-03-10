@@ -150,4 +150,5 @@ public_release:
   when: "{{ insiders }}"
 
 _tasks:
+  - "git init"
   - "gh repo create {{ project_name | slugify }} --private --source=. --remote=upstream"
