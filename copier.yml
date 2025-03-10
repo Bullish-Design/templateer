@@ -151,4 +151,6 @@ public_release:
 
 _tasks:
   - "git init"
+    when: "{{ _copier_operation == 'copy' }}"
   - "gh repo create {{ project_name | slugify }} --private --source=. --remote=upstream"
+    when: "{{ _copier_operation == 'copy' }}"
