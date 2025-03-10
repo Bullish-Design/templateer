@@ -150,7 +150,7 @@ public_release:
   when: "{{ insiders }}"
 
 _tasks:
-  - "git init"
+  - command: [git, init]
     when: "{{ _copier_operation == 'copy' }}"
-  - "gh repo create {{ project_name | slugify }} --private --source=. --remote=upstream"
+  - command: [gh, repo, create, {{ project_name | slugify }}, --private, --source=., --remote=upstream,]
     when: "{{ _copier_operation == 'copy' }}"
