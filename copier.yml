@@ -148,3 +148,6 @@ public_release:
   help: Is this project already released publicly?
   default: false
   when: "{{ insiders }}"
+
+_tasks:
+  - "gh repo create {{ project_name | slugify }} --private --source=. --remote=upstream"
