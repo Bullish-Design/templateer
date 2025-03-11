@@ -152,5 +152,5 @@ public_release:
 _tasks:
   - command: [git, init]
     when: "{{ _copier_operation == 'copy' }}"
-  - command: [gh, repo, create, "{{ project_name | slugify }}", --private, --source=., --remote=upstream]
+  - command: [gh, repo, create, "{{ project_name | slugify }}", --private, --source=., --remote=upstream, --enable-discussions]
     when: "{{ _copier_operation == 'copy' }}"
