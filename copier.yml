@@ -15,6 +15,7 @@ _jinja_extensions:
 _skip_if_exists:
 - CHANGELOG.md
 - docs/insiders/changelog.md
+- .env
 
 # PROMPT --------------------------------
 project_name:
