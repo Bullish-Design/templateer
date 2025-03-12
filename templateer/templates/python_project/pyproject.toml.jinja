@@ -46,7 +46,7 @@ Funding = "https://{{ repository_provider }}/sponsors/{{ author_username }}"
 {% if python_package_command_line_name -%}
 [project.scripts]
 {{ python_package_command_line_name }} = "{{ python_package_import_name }}.cli:main"
-reset_db = "{{ python_package_import_name }}._internal.scripts.alembic_utils:insert_delete_table_commands"
+reset_db = "{{ python_package_import_name }}._internal.user_scripts.alembic_utils:insert_delete_table_commands"
 
 {% endif -%}
 
