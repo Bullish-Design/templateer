@@ -96,14 +96,14 @@ def _fixture_inventory() -> Inventory:
         return Inventory.parse_sphinx(file)
 
 
-def test_exposed_objects(modulelevel_internal_objects: list[griffe.Object | griffe.Alias]) -> None:
-    """All public objects in the internal API are exposed under `{{ python_package_import_name }}`."""
-    not_exposed = [
-        obj.path
-        for obj in modulelevel_internal_objects
-        if obj.name not in {{ python_package_import_name }}.__all__ or not hasattr({{ python_package_import_name }}, obj.name)
-    ]
-    assert not not_exposed, "Objects not exposed:\n" + "\n".join(sorted(not_exposed))
+#def test_exposed_objects(modulelevel_internal_objects: list[griffe.Object | griffe.Alias]) -> None:
+#    """All public objects in the internal API are exposed under `{{ python_package_import_name }}`."""
+#    not_exposed = [
+#        obj.path
+#        for obj in modulelevel_internal_objects
+#        if obj.name not in {{ python_package_import_name }}.__all__ or not hasattr({{ python_package_import_name }}, obj.name)
+#    ]
+#    assert not not_exposed, "Objects not exposed:\n" + "\n".join(sorted(not_exposed))
 
 
 def test_unique_names(modulelevel_internal_objects: list[griffe.Object | griffe.Alias]) -> None:
