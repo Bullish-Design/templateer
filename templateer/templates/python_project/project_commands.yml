@@ -1,1 +1,1 @@
-default: echo
+default: "echo"
