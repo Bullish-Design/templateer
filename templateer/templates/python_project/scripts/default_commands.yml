@@ -1,4 +1,4 @@
-default-commands:
+default_commands:
   hello: "devenv-startup $PROJ"
   local-editable-install: "uv pip install -e ."
   uv-freeze: "uv pip freeze > requirements.txt && echo && echo && uv pip uninstall . && uv pip freeze > requirements.txt && echo && echo 'Requirements.txt frozen' && echo && local-editable-install"
