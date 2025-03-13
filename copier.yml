@@ -15,6 +15,7 @@ _jinja_extensions:
 _skip_if_exists:
 - CHANGELOG.md
 - docs/insiders/changelog.md
+- ./scripts/project_commands.yml
 - .env
 _external_data:
   default_commands: ./scripts/default_commands.yml
