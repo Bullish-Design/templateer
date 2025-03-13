@@ -37,7 +37,7 @@
   # https://devenv.sh/scripts/
   scripts = {
     # Default Commands:
-{% for key, value in script_defaults %}
+{% for key, value in _external_data.default_commands.items() %}
     {{ key }}.exec = ''{{ value }}'';
 {% endfor %}
 
