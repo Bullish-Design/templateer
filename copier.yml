@@ -20,6 +20,9 @@ _external_data:
   default_commands: .default_commands.yml
   project_commands: .project_commands.yml
 
+#_script_defaults:
+
+
 # PROMPT --------------------------------
 project_name:
   type: str
