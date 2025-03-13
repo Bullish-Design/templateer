@@ -1,6 +1,6 @@
 [project]
 name = "templateer"
-version = "0.0.1"
+#version = "0.0.1"
 #dynamic = ["dependencies"]
 dependencies = [
     "copier>=9.6.0",
@@ -15,34 +15,6 @@ main = "templateer.src.main:main"
 
 #[tool.setuptools.dynamic]
 #dependencies = { file = "requirements.txt" }
-
-
-[tool.pdm.version]
-source = "call"
-getter = "scripts.get_version:get_version"
-
-[tool.pdm.build]
-# Include as much as possible in the source distribution, to help redistributors.
-excludes = ["**/.pytest_cache"]
-source-includes = [
-    "config",
-    "docs",
-    "scripts",
-    "share",
-    "tests",
-    "duties.py",
-    "mkdocs.yml",
-    "*.md",
-    "LICENSE",
-]
-
-[tool.pdm.build.wheel-data]
-# Manual pages can be included in the wheel.
-# Depending on the installation tool, they will be accessible to users.
-# pipx supports it, uv does not yet, see https://github.com/astral-sh/uv/issues/4731.
-data = [
-    {path = "share/**/*", relative-to = "."},
-]
 
 [dependency-groups]
 maintain = [

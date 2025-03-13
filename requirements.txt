@@ -63,6 +63,7 @@ runs==1.2.2
 semver==3.0.4
 shellingham==1.5.4
 six==1.17.0
+-e file:///home/andrew/Documents/Projects/templateer
 tmuxp==1.50.1
 tomlkit==0.13.2
 typer==0.15.1
