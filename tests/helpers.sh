@@ -1,5 +1,5 @@
 generate() {
-  copier copy -f --trust -r HEAD "$1" "$2" \
+  uvx copier copy -f --trust -r HEAD "$1" "$2" \
     -d testing=true \
     -d project_name="Bullish-Design Testing" \
     -d project_description='Testing this great template' \
