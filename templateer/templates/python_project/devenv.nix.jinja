@@ -38,13 +38,12 @@
   scripts = {
     # Default Commands:
 {% for key, value in _external_data.default_commands.items() %}
-    {{ key }}.exec = ''{{ value }}'';
-{% endfor %}
+    {{ key }}.exec = ''{{ value }}''; {% endfor %}
+
 
     # Project Commands:
 {% for key, value in _external_data.project_commands.items() %}
-    {{ key }}.exec = ''{{ value }}'';
-{% endfor %}
+    {{ key }}.exec = ''{{ value }}''; {% endfor %}
 
     };
 
