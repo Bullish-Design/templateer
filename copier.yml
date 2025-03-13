@@ -22,7 +22,7 @@ _external_data:
   
 script_defaults:
   type: dict
-  default: {{ _external_data.default_commands.default_commands }}
+  default: "{{ _external_data.default_commands.default_commands }}"
   when: false
 
 
