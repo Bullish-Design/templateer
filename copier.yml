@@ -17,8 +17,8 @@ _skip_if_exists:
 - docs/insiders/changelog.md
 - .env
 _external_data:
-  default_commands: scripts/default_commands.yml
-  project_commands: scripts/project_commands.yml
+  default_commands: .scripts/default_commands.yml
+  project_commands: .scripts/project_commands.yml
   
 #script_defaults:
   #  type: yaml
