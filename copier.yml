@@ -151,8 +151,8 @@ public_release:
   when: "{{ insiders }}"
 
 _tasks:
-  - command: [echo, "Initializing new template"]
-    when: "{{ _copier_operation == 'copy' }}"
+  #- command: [echo, "Initializing new template"]
+  #  when: "{{ _copier_operation == 'copy' }}"
   - command: [git, init]
     when: "{{ _copier_operation == 'copy' }}"
   - command: [gh, repo, create, "{{ project_name | slugify }}", --private, --source=., --remote=upstream] #, --enable-discussions]
