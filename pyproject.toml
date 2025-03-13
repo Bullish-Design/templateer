@@ -5,6 +5,7 @@ name = "templateer"
 requires-python = ">=3.9"
 keywords = []
 dynamic = ["version"]
+#dependencies = []
 
 [project.scripts]
 config = "templateer.src.config:print_envs"
