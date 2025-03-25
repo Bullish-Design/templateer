@@ -5,6 +5,9 @@ name = "templateer"
 requires-python = ">=3.9"
 keywords = []
 dynamic = ["version"]
+dependencies = [
+    "copier-templates-extensions>=0.3.1",
+]
 #dependencies = []
 
 [project.scripts]
