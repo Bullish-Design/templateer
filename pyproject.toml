@@ -1,12 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "templateer"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.1"
+description = "A self-generating Pydantic ⇄ Jinja toolkit"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
 dependencies = [
     "confidantic",
+    "jinja2>=3.1.6",
 ]
 
 [tool.uv.sources]
 confidantic = { git = "https://github.com/Bullish-Design/confidantic.git" }
+
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+]
+dev = [
+    "templateer[test]",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+templateer = "templateer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Bullish-Design/templateer"
+Repository = "https://github.com/Bullish-Design/templateer"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # flake8-bugbear
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = ["src/tests"]
+markers = [
+    "integration: marks tests as integration tests (skipped without env)",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/story_editing", "src/tests", "src/examples"]
+
+

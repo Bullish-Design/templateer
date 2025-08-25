@@ -6,6 +6,9 @@ __pycache__/
 *.tmuxp**
 *.python-version
 *.direnv**
+**.config**
+**confidantic.yaml
+**.lock
 
 # C extensions
 *.so
