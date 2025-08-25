@@ -2,8 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-.devenv**
-
+*.devenv**
+*.tmuxp**
+*.python-version
+*.direnv**
 
 # C extensions
 *.so
