@@ -1,338 +1,231 @@
+# README.md
 # Templateer
 
-**A self-generating Pydantic ⇄ Jinja toolkit for typed template development**
-
-Templateer bridges the gap between dynamic template generation and static type safety by automatically creating Pydantic model stubs from Jinja templates, enabling type-safe template rendering with full IDE support.
-
-## Core Concept
-
-Traditional template systems require manual synchronization between template variables and data models. Templateer eliminates this friction through **template introspection**: it analyzes your Jinja templates, extracts required variables, and auto-generates corresponding Pydantic models that provide type safety and validation.
-
-### The Self-Generating Workflow
-
-1. **Write templates** in `.templateer/` with embedded `TEMPLATE` constants
-2. **Auto-generate models** via template introspection (`--autogen`)
-3. **Use typed models** to render templates with full IDE support
-4. **Round-trip validation** ensures template-model consistency
-
-## Key Features
-
-- **Zero boilerplate**: Models auto-generate from template analysis
-- **Type safety**: Full Pydantic validation and IDE completion
-- **Configuration-driven**: Paths managed via Confidantic settings
-- **Template discovery**: Automatic detection of template modules
-- **Round-trip testing**: Syntax and import validation
-- **CLI integration**: Command-line tools for generation and rendering
+A minimal Python library for managing Jinja2 templates as Pydantic models.
 
 ## Installation
 
 ```bash
-uv add templateer jinja2 pydantic confidantic
+uv add templateer
 ```
 
 ## Quick Start
 
-### 1. Create a Template Module
+**1. Create a template in `.templateer/my_function.py`:**
 
 ```python
-# .templateer/greeting_template.py
+from __future__ import annotations
 from templateer import TemplateModel
 
-class GreetingTemplate(TemplateModel):
-    __template__ = "greeting_template.TEMPLATE"
+class MyFunctionTemplate(TemplateModel):
+    __template__ = TEMPLATE
     
-    name: str
-    greeting: str = "Hello"
+    func_name: str
+    params: str = ""
+    return_type: str = "None"
+    docstring: str | None = None
+    body: str = "pass"
+
 
 TEMPLATE = """
-{{ greeting }}, {{ name }}!
-Welcome to the typed template system.
+def {{ func_name }}({{ params }}) -> {{ return_type }}:
+    {% if docstring -%}
+    \"\"\"{{ docstring }}\"\"\"
+    {% endif -%}
+    {{ body|indent(4, true) }}
 """
 ```
 
-### 2. Generate and Use
-
-```bash
-# Auto-generate Pydantic model stubs
-python -m templateer --autogen
-
-# Use the generated model
-from templateer.models.greeting_model import GreetingTemplate
-
-template = GreetingTemplate(name="Alice", greeting="Hi")
-output = template.generate()  # Renders and writes to file
-print(template.render())      # Just returns the string
-```
-
-## Directory Structure
-
-```
-project/
-├── .templateer/              # Template modules
-│   ├── __init__.py
-│   ├── greeting_template.py  
-│   └── class_template.py
-├── templateer/
-│   └── models/               # Auto-generated model stubs
-│       ├── __init__.py
-│       ├── greeting_model.py
-│       └── class_model.py
-├── TEMPLATE_DIR/             # Rendered output (configurable)
-│   ├── greeting.py
-│   └── class.py
-└── .env                      # Optional configuration
-```
-
-## Configuration
-
-Templateer uses Confidantic for type-safe configuration management:
+**2. Use it in your code:**
 
 ```python
-class TemplateerSettings(Settings):
-    model_dir: Path = Field(
-        default_factory=lambda: Path("templateer") / "models",
-        alias="MODEL_DIR"
-    )
-    template_output_dir: Path = Field(
-        default_factory=lambda: Path("TEMPLATE_DIR"), 
-        alias="TEMPLATE_OUTPUT_DIR"
-    )
+from templateer import discover_templates
+
+# Auto-discover all templates in .templateer/
+templates = discover_templates()
+
+# Render to string
+template = templates.MyFunctionTemplate(
+    func_name="greet",
+    params="name: str",
+    return_type="str",
+    body='return f"Hello, {name}!"'
+)
+code = template.render()
+
+# Or write directly to file
+template.write_to("src/greet.py")
 ```
 
-Override via environment variables or `.env`:
+## How It Works
 
-```bash
-# .env
-MODEL_DIR=src/generated/models
-TEMPLATE_OUTPUT_DIR=output/rendered
-```
+1. **Create templates** as Pydantic models in `.templateer/` directory
+2. **Inherit from `TemplateModel`** to get rendering capabilities
+3. **Define `__template__`** as a Jinja2 template string
+4. **Use Pydantic fields** to define template variables
+5. **Call `.render()`** for string output or `.write_to(path)` to write files
 
-## Template Development
+## Creating Templates
 
-### Basic Template Structure
+Templates are Python classes that combine:
+- **Pydantic validation** for template data
+- **Jinja2 rendering** for code generation
+- **Type safety** via Python type hints
+
+### Template Structure
 
 ```python
-# .templateer/my_template.py
+from __future__ import annotations
 from templateer import TemplateModel
 
-class MyTemplate(TemplateModel):
-    __template__ = "my_template.TEMPLATE"
-    __output__ = "custom_filename.py"  # Optional override
+class YourTemplate(TemplateModel):
+    __template__ = """
+    {{ your_jinja2_template_here }}
+    """
     
-    # Define your data fields
-    variable_name: str
-    optional_field: str | None = None
-
-TEMPLATE = """
-# Your Jinja template here
-{{ variable_name }}
-{% if optional_field %}
-Optional: {{ optional_field }}
-{% endif %}
-"""
+    # Define your fields with types and defaults
+    field_name: str
+    optional_field: int = 42
 ```
 
-### Template Variable Discovery
+### Template Variables
 
-Templateer uses Jinja's AST parser to automatically detect template variables:
+All Pydantic fields become Jinja2 template variables:
 
 ```python
-# Template with variables: name, items, show_header
-TEMPLATE = """
-{% if show_header %}
-# {{ name }}
-{% endif %}
-
-{% for item in items %}
-- {{ item }}
-{% endfor %}
-"""
-```
-
-Auto-generated model stub:
-```python
-class MyTemplate(TemplateModel):
-    __template__ = "my_template.TEMPLATE"
+class ConfigTemplate(TemplateModel):
+    __template__ = TEMPLATE
     
-    items: Any | None = None
-    name: Any | None = None
-    show_header: Any | None = None
-```
+    app_name: str
+    debug: bool = False
 
-### Complex Template Example
-
-```python
-# .templateer/python_class_template.py
-class PythonClassTemplate(TemplateModel):
-    __template__ = "python_class_template.TEMPLATE"
-    
-    class_name: str = "MyClass"
-    attributes: dict[str, str] = {}
-    methods: list[str] = []
-    base_classes: list[str] = []
 
 TEMPLATE = """
-class {{ class_name }}{% if base_classes %}({{ base_classes|join(', ') }}){% endif %}:
-    {% if not attributes and not methods -%}
-    pass
-    {% endif %}
-    
-    {% for name, default in attributes.items() -%}
-    {{ name }}: Any = {{ default }}
-    {% endfor %}
-    
-    {% for method in methods %}
-    {{ method|indent(4, true) }}
-    {% endfor %}
+APP_NAME = "{{ app_name }}"
+DEBUG = {{ debug }}
 """
 ```
 
 ## API Reference
 
-### TemplateModel
+### `TemplateModel`
 
-Base class for all template models:
+Base class for all templates. Provides:
 
+**`.render() -> str`**
+- Renders the template to a string
+- Uses Pydantic field values as Jinja2 context
+
+**`.write_to(path: str | Path) -> None`**
+- Renders template and writes to file
+- Creates parent directories if needed
+- Overwrites existing files
+
+### `discover_templates(directory: str | Path = ".templateer") -> object`
+
+- Scans directory for Python files
+- Imports all `TemplateModel` subclasses
+- Returns namespace object with templates as attributes
+- Template class names become attribute names
+
+## Project Structure
+
+```
+your-project/
+├── .templateer/
+│   ├── function_template.py
+│   ├── class_template.py
+│   └── cli_template.py
+├── src/
+│   └── # your generated code here
+└── generate.py  # your generation script
+```
+
+## Requirements
+
+- Python 3.10+
+- Pydantic 2.x
+- Jinja2
+
+## Template Composition
+
+Templates can be nested as Pydantic fields. Nested templates auto-render when used in Jinja2:
+
+**`.templateer/docstring.py`:**
 ```python
-class TemplateModel(BaseModel):
-    __template__: str           # Required: module.TEMPLATE path
-    __output__: str | None      # Optional: custom output filename
+from __future__ import annotations
+from templateer import TemplateModel
+
+class DocstringTemplate(TemplateModel):
+    __template__ = TEMPLATE
     
-    def render(self) -> str:    # Render template to string
-    def generate(self, write: bool = True) -> str:  # Render and optionally write
-```
+    summary: str
+    params: list[str] = []
 
-### Core Functions
 
-```python
-def autogen_models(verbose: bool = False) -> list[Path]:
-    """Generate Pydantic stubs for all templates"""
-
-def _discover_template_modules() -> Iterable[Path]:
-    """Find all .py files in .templateer/"""
-
-def _extract_template_vars(template_str: str) -> set[str]:
-    """Extract variables from Jinja template"""
-```
-
-## Command Line Interface
-
-```bash
-# Generate model stubs only
-python -m templateer --autogen
-
-# Generate stubs and render all templates
-python -m templateer --generate
-
-# Show help
-python -m templateer --help
-```
-
-## Testing
-
-Templateer includes comprehensive round-trip testing:
-
-```python
-def test_generated_syntax():
-    """Verify all generated files have valid Python syntax"""
-
-def test_generated_imports(): 
-    """Ensure all generated files can be imported"""
-```
-
-Run tests with pytest:
-```bash
-pytest templateer_mvp.py
-```
-
-## Advanced Usage
-
-### Custom Jinja Environment
-
-The library uses a pre-configured Jinja environment:
-
-```python
-ENV = Environment(
-    loader=FileSystemLoader(str(TEMPLATE_ROOT)),
-    autoescape=False,
-    undefined=StrictUndefined,
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
-```
-
-### Template Inheritance
-
-Templates can reference other templates:
-
-```python
 TEMPLATE = """
-{% extends "base_template.j2" %}
-{% block content %}
-{{ custom_content }}
-{% endblock %}
+\"\"\"{{ summary }}
+{% if params %}
+
+Args:
+{% for param in params %}
+    {{ param }}
+{% endfor %}
+{% endif %}
+\"\"\"
 """
 ```
 
-### Dynamic Model Loading
-
+**`.templateer/function_with_docs.py`:**
 ```python
-import importlib
-import sys
+from __future__ import annotations
+from templateer import TemplateModel
+from .docstring import DocstringTemplate
 
-# Add model directory to path
-sys.path.insert(0, str(settings.model_dir))
+class FunctionWithDocsTemplate(TemplateModel):
+    __template__ = TEMPLATE
+    
+    func_name: str
+    docstring: DocstringTemplate
+    body: str = "pass"
 
-# Dynamically load generated models
-for stub in settings.model_dir.glob("*_model.py"):
-    module_name = f"templateer.models.{stub.stem}"
-    mod = importlib.import_module(module_name)
-    template_class = next(
-        cls for cls in mod.__dict__.values()
-        if isinstance(cls, type) 
-        and issubclass(cls, TemplateModel)
-        and cls is not TemplateModel
-    )
+
+TEMPLATE = """
+def {{ func_name }}():
+    {{ docstring|indent(4, true) }}
+    {{ body|indent(4, true) }}
+"""
 ```
 
-## Best Practices
-
-1. **Keep templates focused**: One template per logical unit
-2. **Use meaningful names**: Template files should reflect their purpose  
-3. **Validate early**: Run `--autogen` frequently during development
-4. **Version control models**: Include generated stubs in git for stability
-5. **Test round-trips**: Use built-in testing for syntax validation
-
-## Troubleshooting
-
-### Common Issues
-
-**Template variables not detected**: Ensure variables are used directly in Jinja expressions, not in nested contexts that the AST parser can't reach.
-
-**Import errors**: Check that `.templateer` and model directories are in your Python path.
-
-**Missing TEMPLATE constant**: Every template module must define a `TEMPLATE` string constant.
-
-### Debug Mode
-
-Enable verbose output:
+**Usage:**
 ```python
-autogen_models(verbose=True)
+template = FunctionWithDocsTemplate(
+    func_name="greet",
+    docstring=DocstringTemplate(
+        summary="Greet someone",
+        params=["name: Person to greet"]
+    ),
+    body="print('Hello!')"
+)
+code = template.render()
 ```
 
-## Contributing
+Nested `TemplateModel` instances automatically render when referenced in templates - no need to call `.render()` explicitly.
 
-The library is designed as a single-file MVP with minimal dependencies. Key extension points:
+## Design Principles
 
-- Custom template loaders
-- Alternative model generators  
-- Additional CLI commands
-- Extended configuration options
+- **Simple**: Just Pydantic + Jinja2, nothing more
+- **Type-safe**: Full editor support and validation
+- **Discoverable**: Auto-find templates without imports
+- **Minimal**: No magic, no complex abstractions
+- **Composable**: Nest templates as Pydantic fields
+- **Fast**: Render templates in milliseconds
+
+## Limitations
+
+- 1:1 template to output file mapping (one template class per output)
+- No reverse parsing (generated files → Pydantic models)
 
 ## License
 
-[Add your license here]
-
----
-
-**Templateer**: Where type safety meets template flexibility.
+MIT
