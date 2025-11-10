@@ -6,7 +6,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 import pytest
-from templateer import TemplateModel
+from templateer import TemplateModel, discover_templates
 
 
 def test_simple_render():
@@ -251,3 +251,141 @@ def test_deeply_nested_templates():
 
     result = l3.render()
     assert result == "L3: L2: L1: deep"
+
+
+def test_discover_empty_directory(tmp_path):
+    """Test discovery with no templates."""
+    template_dir = tmp_path / ".templateer"
+    template_dir.mkdir()
+
+    templates = discover_templates(template_dir)
+    assert not hasattr(templates, "anything")
+
+
+def test_discover_single_template(tmp_path):
+    """Test discovering a single template."""
+    template_dir = tmp_path / ".templateer"
+    template_dir.mkdir()
+
+    # Create template file
+    template_file = template_dir / "simple.py"
+    template_file.write_text("""
+from templateer import TemplateModel
+
+TEMPLATE = "Value: {{ value }}"
+
+class SimpleTemplate(TemplateModel):
+    __template__ = TEMPLATE
+    value: str
+
+
+""")
+
+    templates = discover_templates(template_dir)
+    assert hasattr(templates, "SimpleTemplate")
+
+    # Test using the template
+    instance = templates.SimpleTemplate(value="test")
+    assert instance.render() == "Value: test"
+
+
+def test_discover_multiple_templates(tmp_path):
+    """Test discovering multiple templates."""
+    template_dir = tmp_path / ".templateer"
+    template_dir.mkdir()
+
+    # Create first template
+    (template_dir / "first.py").write_text("""
+from templateer import TemplateModel
+
+class FirstTemplate(TemplateModel):
+    __template__ = "First: {{ x }}"
+    x: int
+""")
+
+    # Create second template
+    (template_dir / "second.py").write_text("""
+from templateer import TemplateModel
+
+class SecondTemplate(TemplateModel):
+    __template__ = "Second: {{ y }}"
+    y: str
+""")
+
+    templates = discover_templates(template_dir)
+    assert hasattr(templates, "FirstTemplate")
+    assert hasattr(templates, "SecondTemplate")
+
+
+def test_discover_skips_private_files(tmp_path):
+    """Test that files starting with _ are skipped."""
+    template_dir = tmp_path / ".templateer"
+    template_dir.mkdir()
+
+    # Create __init__.py
+    (template_dir / "__init__.py").write_text("")
+
+    # Create _private.py
+    (template_dir / "_private.py").write_text("""
+from templateer import TemplateModel
+
+class PrivateTemplate(TemplateModel):
+    __template__ = "{{ x }}"
+    x: str
+""")
+
+    templates = discover_templates(template_dir)
+    assert not hasattr(templates, "PrivateTemplate")
+
+
+def test_discover_nested_directories(tmp_path):
+    """Test discovery in nested directories."""
+    template_dir = tmp_path / ".templateer"
+    nested_dir = template_dir / "nested"
+    nested_dir.mkdir(parents=True)
+
+    (nested_dir / "deep.py").write_text("""
+from templateer import TemplateModel
+
+class DeepTemplate(TemplateModel):
+    __template__ = "Deep: {{ z }}"
+    z: str
+""")
+
+    templates = discover_templates(template_dir)
+    assert hasattr(templates, "DeepTemplate")
+
+
+def test_discover_nonexistent_directory(tmp_path):
+    """Test discovery when directory doesn't exist."""
+    template_dir = tmp_path / "nonexistent"
+
+    templates = discover_templates(template_dir)
+    assert not hasattr(templates, "anything")
+
+
+def test_discover_handles_import_errors(tmp_path):
+    """Test that discovery continues when a file has errors."""
+    template_dir = tmp_path / ".templateer"
+    template_dir.mkdir()
+
+    # Create file with syntax error
+    (template_dir / "broken.py").write_text("""
+from templateer import TemplateModel
+
+class BrokenTemplate(TemplateModel):
+    this is not valid python
+""")
+
+    # Create valid file
+    (template_dir / "valid.py").write_text("""
+from templateer import TemplateModel
+
+class ValidTemplate(TemplateModel):
+    __template__ = "{{ x }}"
+    x: str
+""")
+
+    templates = discover_templates(template_dir)
+    assert hasattr(templates, "ValidTemplate")
+    assert not hasattr(templates, "BrokenTemplate")
