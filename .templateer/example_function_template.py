@@ -1,3 +1,4 @@
+# .templateer/example_function_template.py
 """
 Template-module for generating a single Python function.
 Drop this file into .templateer/  – the library will detect it.

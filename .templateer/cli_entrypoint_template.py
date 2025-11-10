@@ -1,3 +1,4 @@
+# .templateer/cli_entrypoint_template.py
 """
 Creates a tiny Click-based CLI entry point.
 """

@@ -1,3 +1,4 @@
+# .templateer/simple_class_template.py
 """
 Generates a minimal class with typed attributes and
 optional custom methods.

@@ -1,3 +1,4 @@
+# src/templateer/main.py
 """templateer – a **self‑generating** Pydantic ⇄ Jinja toolkit
 =================================================================
 This single‑file MVP now **integrates Confidantic** for configuration so all
@@ -106,10 +107,7 @@ class TemplateModel(BaseModel):
 
     @property
     def _output_path(self) -> Path:
-        filename = (
-            self.__output__
-            or f"{self.__class__.__name__.removesuffix('Template').lower()}.py"
-        )
+        filename = self.__output__ or f"{self.__class__.__name__.removesuffix('Template').lower()}.py"
         return settings.template_output_dir / filename
 
     # ------------------------------------------------------------------
@@ -153,9 +151,7 @@ def _write_model_stub(module: ModuleType, template_attr: str, vars_: set[str]) -
     if model_path.exists():  # don’t clobber user edits
         return model_path
 
-    field_lines = (
-        "\n".join(f"    {v}: Any | None = None" for v in sorted(vars_)) or "    pass"
-    )
+    field_lines = "\n".join(f"    {v}: Any | None = None" for v in sorted(vars_)) or "    pass"
 
     stub = textwrap.dedent(
         f"""from __future__ import annotations
@@ -197,9 +193,7 @@ def autogen_models(verbose: bool = False) -> list[Path]:
 if __name__ == "__main__":
     import argparse
 
-    p = argparse.ArgumentParser(
-        description="Templateer – self‑generating template toolkit"
-    )
+    p = argparse.ArgumentParser(description="Templateer – self‑generating template toolkit")
     p.add_argument(
         "--autogen",
         action="store_true",
@@ -220,22 +214,16 @@ if __name__ == "__main__":
         import importlib
 
         for stub in settings.model_dir.glob("*_model.py"):
-            mod = importlib.import_module(
-                f"{TemplateerSettings.__module__}.models.{stub.stem}"
-            )
+            mod = importlib.import_module(f"{TemplateerSettings.__module__}.models.{stub.stem}")
             tmpl_cls = next(
                 c
                 for c in mod.__dict__.values()
-                if isinstance(c, type)
-                and issubclass(c, TemplateModel)
-                and c is not TemplateModel
+                if isinstance(c, type) and issubclass(c, TemplateModel) and c is not TemplateModel
             )
             try:
                 instance = tmpl_cls()
                 outfile = instance.generate()
-                print(
-                    f"[templateer] rendered → {Path(outfile).relative_to(PROJECT_ROOT)}"
-                )
+                print(f"[templateer] rendered → {Path(outfile).relative_to(PROJECT_ROOT)}")
             except Exception as exc:
                 print(f"⚠️  {tmpl_cls.__name__} could not render: {exc}")
     else:
@@ -272,9 +260,7 @@ if "pytest" in sys.modules:
             tmpl_cls = next(
                 c
                 for c in mod.__dict__.values()
-                if isinstance(c, type)
-                and issubclass(c, TemplateModel)
-                and c is not TemplateModel
+                if isinstance(c, type) and issubclass(c, TemplateModel) and c is not TemplateModel
             )
             tmpl_cls().generate()
         yield

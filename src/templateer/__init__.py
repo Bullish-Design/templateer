@@ -1,3 +1,4 @@
+# src/templateer/__init__.py
 """Templateer - A self-generating Pydantic ⇄ Jinja toolkit."""
 
 from __future__ import annotations

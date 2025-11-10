@@ -1,3 +1,4 @@
+# src/templateer/core.py
 """Core TemplateModel class."""
 
 from __future__ import annotations
@@ -14,11 +15,11 @@ from .settings import settings
 
 class JinjaEnvironment:
     """Jinja environment factory."""
-    
+
     def __init__(self) -> None:
         project_root = settings.project_root
         template_root = project_root / ".templateer"
-        
+
         self.env = Environment(
             loader=FileSystemLoader(str(template_root)),
             autoescape=False,
@@ -26,7 +27,7 @@ class JinjaEnvironment:
             trim_blocks=True,
             lstrip_blocks=True,
         )
-    
+
     def from_string(self, template_str: str):
         """Create template from string."""
         return self.env.from_string(template_str)
@@ -62,7 +63,7 @@ class TemplateModel(BaseModel):
         else:
             base_name = self.__class__.__name__.removesuffix("Template")
             filename = f"{base_name.lower()}.py"
-        
+
         return settings.template_output_dir / filename
 
     def render(self) -> str:
@@ -72,9 +73,9 @@ class TemplateModel(BaseModel):
     def generate(self, write: bool = True) -> str:
         """Generate code and optionally write to file."""
         code = self.render()
-        
+
         if write:
             self._output_path.parent.mkdir(parents=True, exist_ok=True)
             self._output_path.write_text(code, encoding="utf-8")
-        
+
         return code

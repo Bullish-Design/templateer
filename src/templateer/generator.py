@@ -1,3 +1,4 @@
+# src/templateer/generator.py
 """Model stub autogeneration functionality."""
 
 from __future__ import annotations
@@ -38,23 +39,16 @@ class ModelGenerator:
         ast = jinja_env.env.parse(template_str)
         return meta.find_undeclared_variables(ast)
 
-    def write_model_stub(
-        self, 
-        module: ModuleType, 
-        template_attr: str, 
-        vars_: set[str]
-    ) -> Path:
+    def write_model_stub(self, module: ModuleType, template_attr: str, vars_: set[str]) -> Path:
         """Write Pydantic model stub to file."""
         stem = module.__name__.split(".")[-1]
         class_name = f"{self.camelify(stem)}Template"
         model_path = settings.model_dir / f"{stem}_model.py"
-        
+
         if model_path.exists():
             return model_path  # Don't overwrite user edits
 
-        field_lines = "\n".join(
-            f"    {v}: Any | None = None" for v in sorted(vars_)
-        ) or "    pass"
+        field_lines = "\n".join(f"    {v}: Any | None = None" for v in sorted(vars_)) or "    pass"
 
         stub = textwrap.dedent(
             f"""\
@@ -72,7 +66,7 @@ class ModelGenerator:
             {field_lines}
             """
         )
-        
+
         model_path.write_text(stub, encoding="utf-8")
         return model_path
 
@@ -80,22 +74,22 @@ class ModelGenerator:
         """Generate missing Pydantic stubs for every TEMPLATE."""
         generated: list[Path] = []
         sys.path.insert(0, str(self.template_root))
-        
+
         for tpl_py in self.discover_template_modules():
             mod = runpy.run_path(tpl_py)["__loader__"].load_module()
-            
+
             if not hasattr(mod, "TEMPLATE"):
                 continue
-                
+
             vars_ = self.extract_template_vars(mod.TEMPLATE)
             model_path = self.write_model_stub(mod, "TEMPLATE", vars_)
-            
+
             if verbose:
                 rel_path = model_path.relative_to(self.project_root)
                 print(f"[templateer] model stub → {rel_path}")
-                
+
             generated.append(model_path)
-        
+
         return generated
 
 
