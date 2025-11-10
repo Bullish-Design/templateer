@@ -9,13 +9,12 @@ from templateer import TemplateModel
 
 def test_simple_render():
     """Test basic template rendering."""
+    TEMPLATE = "Hello {{ name }}, value is {{ value }}"
 
     class SimpleTemplate(TemplateModel):
         __template__ = TEMPLATE
         name: str
         value: int
-
-    TEMPLATE = "Hello {{ name }}, value is {{ value }}"
 
     template = SimpleTemplate(name="World", value=42)
     result = template.render()
@@ -24,13 +23,12 @@ def test_simple_render():
 
 def test_render_with_defaults():
     """Test rendering with default values."""
+    TEMPLATE = "{{ greeting }} {{ name }}"
 
     class DefaultTemplate(TemplateModel):
         __template__ = TEMPLATE
         greeting: str = "Hi"
         name: str = "there"
-
-    TEMPLATE = "{{ greeting }} {{ name }}"
 
     template = DefaultTemplate()
     assert template.render() == "Hi there"
@@ -41,12 +39,11 @@ def test_render_with_defaults():
 
 def test_render_with_jinja_filters():
     """Test that Jinja2 filters work."""
+    TEMPLATE = "{{ text|upper }}"
 
     class FilterTemplate(TemplateModel):
         __template__ = TEMPLATE
         text: str
-
-    TEMPLATE = "{{ text|upper }}"
 
     template = FilterTemplate(text="hello")
     assert template.render() == "HELLO"
@@ -54,12 +51,6 @@ def test_render_with_jinja_filters():
 
 def test_render_with_conditionals():
     """Test Jinja2 conditional logic."""
-
-    class ConditionalTemplate(TemplateModel):
-        __template__ = TEMPLATE
-        show: bool
-        value: str
-
     TEMPLATE = """
 {% if show -%}
 Value: {{ value }}
@@ -67,6 +58,11 @@ Value: {{ value }}
 Hidden
 {% endif -%}
 """
+
+    class ConditionalTemplate(TemplateModel):
+        __template__ = TEMPLATE
+        show: bool
+        value: str
 
     template = ConditionalTemplate(show=True, value="test")
     assert "Value: test" in template.render()
@@ -78,15 +74,15 @@ Hidden
 def test_render_with_loops():
     """Test Jinja2 loop constructs."""
 
-    class LoopTemplate(TemplateModel):
-        __template__ = TEMPLATE
-        items: list[str]
-
     TEMPLATE = """
 {% for item in items -%}
 - {{ item }}
 {% endfor -%}
 """
+
+    class LoopTemplate(TemplateModel):
+        __template__ = TEMPLATE
+        items: list[str]
 
     template = LoopTemplate(items=["a", "b", "c"])
     result = template.render()

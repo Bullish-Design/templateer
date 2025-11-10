@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "templateer"
-version = "0.2.1"
-description = "A self-generating Pydantic ⇄ Jinja toolkit"
+version = "0.3.1"
+description = "A Pythoninc Pydantic ⇄ Jinja toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
 
@@ -19,13 +19,14 @@ classifiers = [
 ]
 
 dependencies = [
-    "confidantic",
+    #"confidantic",
     "jinja2>=3.1.6",
+    "pydantic>=2.12.4",
     "python-dotenv>=1.1.0",
 ]
 
-[tool.uv.sources]
-confidantic = { git = "https://github.com/Bullish-Design/confidantic.git" }
+#[tool.uv.sources]
+#confidantic = { git = "https://github.com/Bullish-Design/confidantic.git" }
 
 
 [project.optional-dependencies]
@@ -37,8 +38,8 @@ dev = [
     "ruff>=0.1.0",
 ]
 
-[project.scripts]
-templateer = "templateer.cli:main"
+#[project.scripts]
+#templateer = "templateer.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Bullish-Design/templateer"
@@ -66,6 +67,6 @@ filterwarnings = "ignore::DeprecationWarning"
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/story_editing", "src/tests", "src/examples"]
+packages = [ "src/tests", "src/examples"]
 
 
