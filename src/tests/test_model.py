@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 import pytest
 from templateer import TemplateModel
 
@@ -126,3 +128,55 @@ def test_pydantic_validation():
 
     with pytest.raises(Exception):  # pydantic.ValidationError
         TypedTemplate(value="not an int")
+
+
+def test_write_to_file(tmp_path):
+    class FileTemplate(TemplateModel):
+        __template__ = "Content: {{ value }}"
+        value: str
+
+    template = FileTemplate(value="test")
+    output_path = tmp_path / "output.txt"
+    template.write_to(output_path)
+
+    assert output_path.exists()
+    assert output_path.read_text() == "Content: test"
+
+
+def test_write_to_creates_directories(tmp_path):
+    class DirTemplate(TemplateModel):
+        __template__ = "{{ text }}"
+        text: str
+
+    template = DirTemplate(text="hello")
+    output_path = tmp_path / "nested" / "dir" / "file.txt"
+    template.write_to(output_path)
+
+    assert output_path.exists()
+    assert output_path.read_text() == "hello"
+
+
+def test_write_to_overwrites_existing(tmp_path):
+    class OverwriteTemplate(TemplateModel):
+        __template__ = "{{ content }}"
+        content: str
+
+    output_path = tmp_path / "file.txt"
+    output_path.write_text("old content")
+
+    template = OverwriteTemplate(content="new content")
+    template.write_to(output_path)
+
+    assert output_path.read_text() == "new content"
+
+
+def test_write_to_accepts_string_path(tmp_path):
+    class StringPathTemplate(TemplateModel):
+        __template__ = "{{ val }}"
+        val: str
+
+    template = StringPathTemplate(val="test")
+    output_path = str(tmp_path / "file.txt")
+    template.write_to(output_path)
+
+    assert Path(output_path).exists()
