@@ -180,3 +180,74 @@ def test_write_to_accepts_string_path(tmp_path):
     template.write_to(output_path)
 
     assert Path(output_path).exists()
+
+
+def test_str_returns_rendered():
+    """Test that __str__ returns rendered template."""
+
+    class StrTemplate(TemplateModel):
+        __template__ = "Value: {{ x }}"
+        x: int
+
+    template = StrTemplate(x=99)
+    assert str(template) == "Value: 99"
+
+
+def test_nested_template_auto_renders():
+    """Test that nested templates auto-render via __str__."""
+
+    class InnerTemplate(TemplateModel):
+        __template__ = "Inner: {{ value }}"
+        value: str
+
+    class OuterTemplate(TemplateModel):
+        __template__ = "Outer: {{ inner }}"
+        inner: InnerTemplate
+
+    inner = InnerTemplate(value="test")
+    outer = OuterTemplate(inner=inner)
+
+    result = outer.render()
+    assert result == "Outer: Inner: test"
+
+
+def test_nested_with_indent_filter():
+    """Test nested templates work with Jinja2 indent filter."""
+
+    class BlockTemplate(TemplateModel):
+        __template__ = "def foo():\n    {{ content }}"
+        content: str
+
+    class NestedBlockTemplate(TemplateModel):
+        __template__ = "{{ block|indent(4, true) }}"
+        block: BlockTemplate
+
+    inner = BlockTemplate(content="return 42")
+    outer = NestedBlockTemplate(block=inner)
+
+    result = outer.render()
+    assert "def foo():" in result
+    assert "return 42" in result
+
+
+def test_deeply_nested_templates():
+    """Test multiple levels of nested templates."""
+
+    class Level1(TemplateModel):
+        __template__ = "L1: {{ val }}"
+        val: str
+
+    class Level2(TemplateModel):
+        __template__ = "L2: {{ inner }}"
+        inner: Level1
+
+    class Level3(TemplateModel):
+        __template__ = "L3: {{ middle }}"
+        middle: Level2
+
+    l1 = Level1(val="deep")
+    l2 = Level2(inner=l1)
+    l3 = Level3(middle=l2)
+
+    result = l3.render()
+    assert result == "L3: L2: L1: deep"

@@ -18,54 +18,25 @@ _DEFAULT_ENV = jinja2.Environment(
 )
 
 
-class TemplateModel(BaseModel):
-    """Base class for all templates.
-
-    Subclasses must define ``__template__`` as a class variable containing
-    a Jinja2 template string.
-
-    Optional subclass hooks:
-      - ``__env__``: a pre-configured :class:`jinja2.Environment` to use
-        instead of the default environment.
-      - ``__jinja_filters__``: a ``dict[str, _t.Callable]`` of extra filters
-        to register on a *copy* of the default environment for this class.
-    """
-
-    # Expected to be overridden by subclasses
-    __template__: str
-
-    # Optional per-class environment override
-    __env__: jinja2.Environment | None = None
-
-    # Optional additional filters for this class only
-    __jinja_filters__: dict[str, _t.Callable[..., _t.Any]] | None = None
-
-    # --- Internal helpers -------------------------------------------------
+class TemplateBase(BaseModel):
+    __template__: ClassVar[str]
+    __env__: ClassVar[jinja2.Environment | None] = None
+    __jinja_filters__: ClassVar[dict[str, _t.Callable[..., _t.Any]] | None] = None
 
     @classmethod
     def _get_environment(cls) -> jinja2.Environment:
-        """Return the Jinja2 environment for this class.
-
-        Priority:
-        1) ``__env__`` if provided on the subclass (used as-is).
-        2) A shallow copy of the default env with ``__jinja_filters__`` applied.
-        3) The shared default environment.
-        """
         if isinstance(getattr(cls, "__env__", None), jinja2.Environment):
             return cls.__env__  # type: ignore[return-value]
 
         if isinstance(getattr(cls, "__jinja_filters__", None), dict):
-            # Make a copy so per-class filters don't leak globally.
             env = jinja2.Environment(
                 autoescape=_DEFAULT_ENV.autoescape,
                 trim_blocks=_DEFAULT_ENV.trim_blocks,
                 lstrip_blocks=_DEFAULT_ENV.lstrip_blocks,
             )
-            # Copy globals/filters/tests from the default env
             env.globals.update(_DEFAULT_ENV.globals)
             env.filters.update(_DEFAULT_ENV.filters)
             env.tests.update(_DEFAULT_ENV.tests)
-            # Add class-provided filters
             env.filters.update(cls.__jinja_filters__ or {})
             return env
 
@@ -73,32 +44,57 @@ class TemplateModel(BaseModel):
 
     @classmethod
     def _get_template(cls) -> jinja2.Template:
-        """Compile and return the Jinja2 template for this class."""
         template_str = getattr(cls, "__template__", None)
         if not isinstance(template_str, str) or not template_str:
-            raise AttributeError(f"{cls.__name__} must define __template__.")
-        env = cls._get_environment()
-        return env.from_string(template_str)
+            raise AttributeError(f"{cls.__name__} must define __template__")
+        return cls._get_environment().from_string(template_str)
 
-    # --- Public API -------------------------------------------------------
+    @staticmethod
+    def _stringify_templates(obj: _t.Any) -> _t.Any:
+        """Recursively turn TemplateBase instances into their rendered strings.
+
+        Handles nested structures (dict, list, tuple, set). Leaves other types unchanged.
+        """
+        # If it's a template model, render it
+        if isinstance(obj, TemplateBase):
+            return str(obj)  # uses __str__ on TemplateModel
+
+        # Recurse through containers
+        if isinstance(obj, dict):
+            return {k: TemplateBase._stringify_templates(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [TemplateBase._stringify_templates(v) for v in obj]
+        if isinstance(obj, tuple):
+            return tuple(TemplateBase._stringify_templates(v) for v in obj)
+        if isinstance(obj, set):
+            return {TemplateBase._stringify_templates(v) for v in obj}
+
+        return obj
+
+
+class TemplateModel(TemplateBase):
+    """Thin public model: render and write-to-file APIs."""
 
     def render(self) -> str:
-        """Render the template using the model's fields as context."""
+        """Render with nested TemplateModels converted to strings.
+
+        Build context from live attributes (not model_dump) so nested models
+        remain instances we can stringify.
+        """
         template = self._get_template()
-        return template.render(**self.model_dump())
+        # self.model_fields is Pydantic v2 API: field names -> FieldInfo
+        ctx = {name: self._stringify_templates(getattr(self, name)) for name in self.model_fields}
+        return template.render(**ctx)
 
     def write_to(self, path: str | Path) -> None:
         """Render template and write the result to ``path``.
 
         Creates parent directories if they don't exist.
-
-        Args:
-            path: File path to write to.
-
-        Raises:
-            PermissionError: If the file cannot be written due to permissions.
-            OSError: For other I/O related failures.
         """
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(self.render())
+
+    def __str__(self) -> str:
+        """Return rendered template for implicit/nested rendering."""
+        return self.render()
