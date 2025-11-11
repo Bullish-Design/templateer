@@ -38,8 +38,8 @@ dev = [
     "ruff>=0.1.0",
 ]
 
-#[project.scripts]
-#templateer = "templateer.cli:main"
+[project.scripts]
+demo = "examples.generate:main"
 
 [project.urls]
 Homepage = "https://github.com/Bullish-Design/templateer"

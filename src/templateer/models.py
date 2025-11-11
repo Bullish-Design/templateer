@@ -7,29 +7,30 @@ import typing as _t
 from pathlib import Path
 
 from pydantic import BaseModel
-import jinja2
-
+from jinja2 import Environment, StrictUndefined
 
 # Shared default Jinja environment used unless a subclass overrides it.
-_DEFAULT_ENV = jinja2.Environment(
+_DEFAULT_ENV = Environment(
     autoescape=False,
+    undefined=StrictUndefined,
     trim_blocks=True,
     lstrip_blocks=True,
+    keep_trailing_newline=True,
 )
 
 
 class TemplateBase(BaseModel):
     __template__: ClassVar[str]
-    __env__: ClassVar[jinja2.Environment | None] = None
+    __env__: ClassVar[Environment | None] = None
     __jinja_filters__: ClassVar[dict[str, _t.Callable[..., _t.Any]] | None] = None
 
     @classmethod
-    def _get_environment(cls) -> jinja2.Environment:
-        if isinstance(getattr(cls, "__env__", None), jinja2.Environment):
+    def _get_environment(cls) -> Environment:
+        if isinstance(getattr(cls, "__env__", None), Environment):
             return cls.__env__  # type: ignore[return-value]
 
         if isinstance(getattr(cls, "__jinja_filters__", None), dict):
-            env = jinja2.Environment(
+            env = Environment(
                 autoescape=_DEFAULT_ENV.autoescape,
                 trim_blocks=_DEFAULT_ENV.trim_blocks,
                 lstrip_blocks=_DEFAULT_ENV.lstrip_blocks,
@@ -43,7 +44,7 @@ class TemplateBase(BaseModel):
         return _DEFAULT_ENV
 
     @classmethod
-    def _get_template(cls) -> jinja2.Template:
+    def _get_template(cls) -> Template:
         template_str = getattr(cls, "__template__", None)
         if not isinstance(template_str, str) or not template_str:
             raise AttributeError(f"{cls.__name__} must define __template__")
