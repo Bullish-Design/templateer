@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "templateer"
-version = "0.3.1"
+version = "0.3.2"
 description = "A Pythoninc Pydantic ⇄ Jinja toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -67,6 +67,6 @@ filterwarnings = "ignore::DeprecationWarning"
 
 
 [tool.hatch.build.targets.wheel]
-packages = [ "src/tests", "src/examples"]
+packages = [ "src/templateer","src/examples"] # "src/tests", 
 
 
