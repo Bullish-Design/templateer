@@ -12,8 +12,7 @@ class {{ class_name }}:
     {{ name }}: {{ field_type }}
 {% endfor %}
 {% for method in methods %}
-
-    {{ method | indent(4, true) }}
+{{ method | indent(4, true) }}
 {% endfor %}
 '''
 
