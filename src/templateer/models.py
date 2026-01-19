@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import typing as _t
+from collections.abc import Mapping, Sequence
 from typing import ClassVar
 from pathlib import Path
 
@@ -46,23 +47,35 @@ class TemplateBase(BaseModel):
     def _stringify_templates(obj: _t.Any) -> _t.Any:
         """Recursively turn TemplateBase instances into their rendered strings.
 
-        Handles nested structures (dict, list, tuple, set). Leaves other types unchanged.
+        Handles nested structures (mappings, sequences, sets). Leaves other types unchanged.
+        Set iteration order is nondeterministic, so output order is not guaranteed.
         """
-        # If it's a template model, render it
-        if isinstance(obj, TemplateBase):
-            return str(obj)  # uses __str__ on TemplateModel
+        visited: set[int] = set()
 
-        # Recurse through containers
-        if isinstance(obj, dict):
-            return {k: TemplateBase._stringify_templates(v) for k, v in obj.items()}
-        if isinstance(obj, list):
-            return [TemplateBase._stringify_templates(v) for v in obj]
-        if isinstance(obj, tuple):
-            return tuple(TemplateBase._stringify_templates(v) for v in obj)
-        if isinstance(obj, set):
-            return {TemplateBase._stringify_templates(v) for v in obj}
+        def _stringify(value: _t.Any) -> _t.Any:
+            # If it's a template model, render it
+            if isinstance(value, TemplateBase):
+                return str(value)  # uses __str__ on TemplateModel
 
-        return obj
+            if isinstance(value, (Mapping, Sequence, set)) and not isinstance(value, (str, bytes)):
+                value_id = id(value)
+                if value_id in visited:
+                    return value
+                visited.add(value_id)
+
+            # Recurse through containers
+            if isinstance(value, Mapping):
+                return {k: _stringify(v) for k, v in value.items()}
+            if isinstance(value, tuple):
+                return tuple(_stringify(v) for v in value)
+            if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+                return [_stringify(v) for v in value]
+            if isinstance(value, set):
+                return {_stringify(v) for v in value}
+
+            return value
+
+        return _stringify(obj)
 
 
 class TemplateModel(TemplateBase):
