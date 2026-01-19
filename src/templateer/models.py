@@ -10,14 +10,13 @@ from pathlib import Path
 from pydantic import BaseModel
 from jinja2 import Environment, StrictUndefined, Template
 
-# Shared default Jinja environment used unless a subclass overrides it.
-_DEFAULT_ENV = Environment(
-    autoescape=False,
-    undefined=StrictUndefined,
-    trim_blocks=True,
-    lstrip_blocks=True,
-    keep_trailing_newline=True,
-)
+_DEFAULT_ENV_OPTIONS = {
+    "autoescape": False,
+    "undefined": StrictUndefined,
+    "trim_blocks": True,
+    "lstrip_blocks": True,
+    "keep_trailing_newline": True,
+}
 
 
 class TemplateBase(BaseModel):
@@ -30,19 +29,11 @@ class TemplateBase(BaseModel):
         if isinstance(getattr(cls, "__env__", None), Environment):
             return cls.__env__  # type: ignore[return-value]
 
+        env = Environment(**_DEFAULT_ENV_OPTIONS)
         if isinstance(getattr(cls, "__jinja_filters__", None), dict):
-            env = Environment(
-                autoescape=_DEFAULT_ENV.autoescape,
-                trim_blocks=_DEFAULT_ENV.trim_blocks,
-                lstrip_blocks=_DEFAULT_ENV.lstrip_blocks,
-            )
-            env.globals.update(_DEFAULT_ENV.globals)
-            env.filters.update(_DEFAULT_ENV.filters)
-            env.tests.update(_DEFAULT_ENV.tests)
             env.filters.update(cls.__jinja_filters__ or {})
-            return env
 
-        return _DEFAULT_ENV
+        return env
 
     @classmethod
     def _get_template(cls) -> Template:
