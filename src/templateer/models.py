@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 import typing as _t
+from typing import ClassVar
 from pathlib import Path
 
 from pydantic import BaseModel
-from jinja2 import Environment, StrictUndefined
+from jinja2 import Environment, StrictUndefined, Template
 
 # Shared default Jinja environment used unless a subclass overrides it.
 _DEFAULT_ENV = Environment(
