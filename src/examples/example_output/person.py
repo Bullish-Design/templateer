@@ -5,6 +5,5 @@ from dataclasses import dataclass
 class Person:
     name: str
     age: int
-
-        def greet(self) -> str:
+    def greet(self) -> str:
         return f'Hi, I am {self.name}'
