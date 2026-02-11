@@ -44,6 +44,10 @@ class TemplateError(Exception):
         return f"{self.message} ({', '.join(details)})"
 
 
+class ManifestError(TemplateError):
+    """Raised when manifest operations fail."""
+
+
 class RegistryError(TemplateError):
     """Raised when registry operations fail."""
 
@@ -62,3 +66,8 @@ class TemplateRenderError(TemplateError):
 
 class OutputWriteError(TemplateError):
     """Raised when writing rendered output fails."""
+
+
+# Backward-compatible aliases kept for earlier roadmap step tests.
+TemplateerError = TemplateError
+TemplateURIValidationError = TemplateRenderError
