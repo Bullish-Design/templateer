@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 
@@ -81,8 +82,11 @@ def test_env_reloads_registry_when_content_changes_with_same_size_payload(tmp_pa
     if stat_after.st_size != signature_before.size:
         pytest.skip("filesystem reported size change; cannot assert same-size rewrite")
 
+        # if stat_after.st_mtime_ns != signature_before.mtime_ns:
+    #    registry_path.touch(ns=(signature_before.mtime_ns, signature_before.mtime_ns))
     if stat_after.st_mtime_ns != signature_before.mtime_ns:
-        registry_path.touch(ns=(signature_before.mtime_ns, signature_before.mtime_ns))
+        # set mtime back to the prior value so size+mtime stay "stable"
+        os.utime(registry_path, ns=(stat_after.st_atime_ns, signature_before.mtime_ns))
 
     second = env.get_entry("invoice")
     assert second.template_uri == "templates/invoice/template_v2.mako"
