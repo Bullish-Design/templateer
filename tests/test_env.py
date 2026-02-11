@@ -54,6 +54,42 @@ def test_env_reloads_registry_when_signature_changes(tmp_path) -> None:
     assert second.model_import_path == "myapp.models:InvoiceTemplateV2"
 
 
+def test_env_reloads_registry_when_content_changes_with_same_size_payload(tmp_path) -> None:
+    env = TemplateEnv(tmp_path)
+    registry_path = env.registry_path
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+
+    first_payload = """{"templates":{"invoice":{"template_uri":"templates/invoice/template_v1.mako","model_import_path":"myapp.models:InvoiceTemplateAA"}}}"""
+    second_payload = """{"templates":{"invoice":{"template_uri":"templates/invoice/template_v2.mako","model_import_path":"myapp.models:InvoiceTemplateBB"}}}"""
+
+    assert len(first_payload) == len(second_payload)
+
+    registry_path.write_text(first_payload, encoding="utf-8")
+    first = env.get_entry("invoice")
+    assert first.template_uri == "templates/invoice/template_v1.mako"
+    assert first.model_import_path == "myapp.models:InvoiceTemplateAA"
+
+    signature_before = env._cached_signature
+    assert signature_before is not None
+
+    registry_path.write_text(second_payload, encoding="utf-8")
+    stat_after = registry_path.stat()
+
+    if signature_before.inode is not None and stat_after.st_ino != signature_before.inode:
+        pytest.skip("filesystem changed inode on rewrite; cannot assert inode stability")
+
+    if stat_after.st_size != signature_before.size:
+        pytest.skip("filesystem reported size change; cannot assert same-size rewrite")
+
+    if stat_after.st_mtime_ns != signature_before.mtime_ns:
+        registry_path.touch(ns=(signature_before.mtime_ns, signature_before.mtime_ns))
+
+    second = env.get_entry("invoice")
+    assert second.template_uri == "templates/invoice/template_v2.mako"
+    assert second.model_import_path == "myapp.models:InvoiceTemplateBB"
+    assert env._cached_signature != signature_before
+
+
 def test_env_missing_registry_has_hint_and_relative_path(tmp_path) -> None:
     env = TemplateEnv(tmp_path)
 
