@@ -3,8 +3,8 @@ set -euo pipefail
 
 if ! command -v entr >/dev/null 2>&1; then
   echo "entr is required for scripts/dev_watch"
-  echo "Install entr or run: pytest -q"
+  echo "Install entr or run: PYTHONPATH=src python -m pytest -q"
   exit 1
 fi
 
-rg --files src tests pyproject.toml | entr -c pytest -q
+rg --files src tests pyproject.toml | entr -c bash -lc 'PYTHONPATH=src python -m pytest -q'
