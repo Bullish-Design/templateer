@@ -229,3 +229,23 @@ Nested `TemplateModel` instances automatically render when referenced in templat
 ## License
 
 MIT
+
+## Batch demo from JSONL
+
+Use `scripts/demo_generate_from_jsonl.py` to render the same template for every JSON object in a JSONL file.
+
+Example input file path:
+
+- `templates/greeting/examples/sample_inputs.jsonl`
+
+Run:
+
+```bash
+python scripts/demo_generate_from_jsonl.py \
+  --project-root . \
+  --template-id greeting \
+  --input-jsonl templates/greeting/examples/sample_inputs.jsonl \
+  --output-dir output/demo
+```
+
+Outputs are written to `output/demo/<template_id>/<line_number>.txt`.
