@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
 from templateer import __version__
-from templateer.env import TemplateEnv
 from templateer.errors import TemplateError
-from templateer.output import write_generation_artifacts
 from templateer.registry import build_registry_file, load_registry
-from templateer.renderer import render_template_id
+from templateer.services.generation_service import generate_examples, generate_single
+from templateer.services.input_service import parse_json_object
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,52 +43,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _parse_json_object(raw_json: str) -> dict[str, object]:
-    try:
-        payload = json.loads(raw_json)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"input is not valid JSON ({exc.msg})") from exc
-
-    if not isinstance(payload, dict):
-        raise ValueError("input JSON must be an object at the top level")
-
-    return payload
-
-
-def _generate_single(project_root: Path, template_id: str, payload: dict[str, object]) -> Path:
-    env = TemplateEnv(project_root)
-    rendered = render_template_id(env, template_id, payload)
-    template_dir = project_root / "templates" / template_id
-    gen_dir = template_dir / "gen"
-    input_json = json.dumps(payload, indent=2) + "\n"
-    return write_generation_artifacts(gen_dir, input_json, rendered)
-
-
-def _generate_examples(project_root: Path, template_id: str) -> tuple[int, int]:
-    env = TemplateEnv(project_root)
-    template_dir = project_root / "templates" / template_id
-    examples_jsonl = template_dir / "examples" / "sample_inputs.jsonl"
-    success = 0
-    failure = 0
-
-    with examples_jsonl.open("r", encoding="utf-8") as handle:
-        for line_number, raw_line in enumerate(handle, start=1):
-            line = raw_line.strip()
-            if not line:
-                continue
-
-            try:
-                payload = _parse_json_object(line)
-                rendered = render_template_id(env, template_id, payload)
-                input_json = json.dumps(payload, indent=2) + "\n"
-                write_generation_artifacts(template_dir / "examples", input_json, rendered)
-                success += 1
-            except (TemplateError, ValueError) as exc:
-                failure += 1
-                print(f"line {line_number}: {exc}", file=sys.stderr)
-
-    return success, failure
-
 
 def app(argv: list[str] | None = None) -> int:
     parser = build_parser()
@@ -113,13 +65,13 @@ def app(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "generate":
-            payload = _parse_json_object(args.input_json)
-            output_dir = _generate_single(Path(args.project_root), args.template_id, payload)
+            payload = parse_json_object(args.input_json)
+            output_dir = generate_single(Path(args.project_root), args.template_id, payload)
             print(output_dir)
             return 0
 
         if args.command == "generate-examples":
-            success, failure = _generate_examples(Path(args.project_root), args.template_id)
+            success, failure = generate_examples(Path(args.project_root), args.template_id)
             print(f"Processed examples: success={success}, failure={failure}")
             return 1 if failure else 0
 

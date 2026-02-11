@@ -13,7 +13,7 @@ build-registry:
 
 # Create a new template scaffold under templates/<template-id>/
 create-template template_id model_import_path description="" tags="":
-    {{python}} scripts/new_template.py \
+    PYTHONPATH=src {{python}} scripts/new_template.py \
       --project-root {{project_root}} \
       --template-id {{template_id}} \
       --model-import-path {{model_import_path}} \

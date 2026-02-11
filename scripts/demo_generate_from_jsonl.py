@@ -4,20 +4,18 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    from _bootstrap import ensure_src_on_syspath
+else:  # pragma: no cover
+    from ._bootstrap import ensure_src_on_syspath
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = REPO_ROOT / "src"
-if SRC_DIR.exists() and str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+ensure_src_on_syspath()
 
-from templateer.env import TemplateEnv
-from templateer.errors import TemplateError
-from templateer.output import write_generation_artifacts
-from templateer.renderer import render_template_id
+from templateer.services.generation_service import process_jsonl_inputs
+from templateer.services.runtime import resolve_project_root
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,47 +32,20 @@ def app(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    total = 0
-    success = 0
-    failure = 0
-
+    project_root = resolve_project_root(args.project_root)
     output_dir = args.output_dir
     if output_dir is None:
-        output_dir = args.project_root / "templates" / args.template_id / "gen"
-
-    env = TemplateEnv(args.project_root)
+        output_dir = project_root / "templates" / args.template_id / "gen"
 
     try:
-        with args.input_jsonl.open("r", encoding="utf-8") as handle:
-            for line_number, raw_line in enumerate(handle, start=1):
-                total += 1
-                line = raw_line.strip()
-                if not line:
-                    failure += 1
-                    print(f"line {line_number}: empty line", file=sys.stderr)
-                    if args.fail_fast:
-                        break
-                    continue
-
-                try:
-                    payload = json.loads(line)
-                    if not isinstance(payload, dict):
-                        raise ValueError("JSON value must be an object")
-
-                    rendered = render_template_id(env, args.template_id, payload)
-                    input_json = json.dumps(payload, indent=2) + "\n"
-                    write_generation_artifacts(output_dir, input_json, rendered)
-                    success += 1
-                except json.JSONDecodeError as exc:
-                    failure += 1
-                    print(f"line {line_number}: invalid JSON ({exc.msg})", file=sys.stderr)
-                    if args.fail_fast:
-                        break
-                except (TemplateError, ValueError) as exc:
-                    failure += 1
-                    print(f"line {line_number}: {exc}", file=sys.stderr)
-                    if args.fail_fast:
-                        break
+        total, success, failure = process_jsonl_inputs(
+            project_root,
+            args.template_id,
+            args.input_jsonl,
+            output_dir=output_dir,
+            fail_fast=args.fail_fast,
+            count_empty_as_failure=True,
+        )
     except OSError as exc:
         print(f"failed to read {args.input_jsonl}: {exc}", file=sys.stderr)
         return 1

@@ -84,6 +84,28 @@ just run-template-examples greeting
 just run-tests
 ```
 
+
+## CLI compatibility contract
+
+The CLI command names are compatibility-sensitive and are treated as a public shell contract:
+
+- `registry build`
+- `registry show`
+- `generate`
+- `generate-examples`
+
+Output semantics are also stable by design:
+
+- success artifacts/results are printed to stdout
+- user-actionable failures are printed to stderr
+- failing operations return non-zero exit codes
+
+## Refactor guardrails
+
+- Keep `Justfile` declarative/orchestration-only.
+- Keep CLI modules thin (argument parsing + output + exit-code mapping).
+- Put reusable orchestration/business logic in `templateer.services`.
+
 ## Refactor direction (in progress)
 
 As documented in `CODE_REVIEW.md` and `JUST_REFACTOR.md`, Templateer is moving to:
