@@ -230,22 +230,28 @@ Nested `TemplateModel` instances automatically render when referenced in templat
 
 MIT
 
-## Batch demo from JSONL
+## Generation outputs and examples
 
-Use `scripts/demo_generate_from_jsonl.py` to render the same template for every JSON object in a JSONL file.
+Each template directory contains:
 
-Example input file path:
+- `gen/` for ad-hoc generation runs from the CLI.
+- `examples/sample_inputs.jsonl` with sample input JSON objects.
 
-- `templates/greeting/examples/sample_inputs.jsonl`
-
-Run:
+Single generation call:
 
 ```bash
-python scripts/demo_generate_from_jsonl.py \
-  --project-root . \
-  --template-id greeting \
-  --input-jsonl templates/greeting/examples/sample_inputs.jsonl \
-  --output-dir output/demo
+mpt generate   --project-root .   --template-id greeting   --input-json '{"name":"Ada","title":"Engineer"}'
 ```
 
-Outputs are written to `output/demo/<template_id>/<line_number>.txt`.
+This writes a timestamped folder under `templates/greeting/gen/` with:
+
+- `input.json`
+- `output.txt`
+
+Generate all sample objects from JSONL:
+
+```bash
+mpt generate-examples   --project-root .   --template-id greeting
+```
+
+This reads `templates/greeting/examples/sample_inputs.jsonl` and creates one timestamped folder per input object under `templates/greeting/examples/`.

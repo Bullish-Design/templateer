@@ -16,6 +16,7 @@ if SRC_DIR.exists() and str(SRC_DIR) not in sys.path:
 
 from templateer.env import TemplateEnv
 from templateer.errors import TemplateError
+from templateer.output import write_generation_artifacts
 from templateer.renderer import render_template_id
 
 
@@ -24,17 +25,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-root", type=Path, default=Path("."), help="Project root containing templates/registry.json")
     parser.add_argument("--template-id", required=True, help="Template ID from templates/registry.json")
     parser.add_argument("--input-jsonl", type=Path, required=True, help="Path to line-delimited JSON input file")
-    parser.add_argument("--output-dir", type=Path, default=Path("output/demo"), help="Directory where rendered files are written")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Directory where timestamped generation folders are written")
     parser.add_argument("--fail-fast", action="store_true", help="Stop on the first parse/validation/render failure")
     return parser
-
-
-def _write_output(base_output_dir: Path, template_id: str, line_number: int, content: str) -> Path:
-    template_output_dir = base_output_dir / template_id
-    template_output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = template_output_dir / f"{line_number}.txt"
-    output_path.write_text(content, encoding="utf-8")
-    return output_path
 
 
 def app(argv: list[str] | None = None) -> int:
@@ -44,6 +37,12 @@ def app(argv: list[str] | None = None) -> int:
     total = 0
     success = 0
     failure = 0
+
+    output_dir = args.output_dir
+    if output_dir is None:
+        output_dir = args.project_root / "templates" / args.template_id / "gen"
+
+    env = TemplateEnv(args.project_root)
 
     try:
         with args.input_jsonl.open("r", encoding="utf-8") as handle:
@@ -62,9 +61,9 @@ def app(argv: list[str] | None = None) -> int:
                     if not isinstance(payload, dict):
                         raise ValueError("JSON value must be an object")
 
-                    env = TemplateEnv(args.project_root)
                     rendered = render_template_id(env, args.template_id, payload)
-                    _write_output(args.output_dir, args.template_id, line_number, rendered)
+                    input_json = json.dumps(payload, indent=2) + "\n"
+                    write_generation_artifacts(output_dir, input_json, rendered)
                     success += 1
                 except json.JSONDecodeError as exc:
                     failure += 1
