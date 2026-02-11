@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import sys
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -35,14 +36,35 @@ def import_model(path: str) -> type[BaseModel]:
             import_path=raw_path,
         )
 
-    try:
-        module = importlib.import_module(module_name)
-    except Exception as exc:
-        raise TemplateImportError(
-            "failed to import model module",
-            import_path=raw_path,
-            detail=str(exc),
-        ) from exc
+    module = sys.modules.get(module_name)
+    if module is None:
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError as exc:
+            if module_name.startswith("tests."):
+                fallback_module = module_name.removeprefix("tests.")
+                module = sys.modules.get(fallback_module)
+                if module is None:
+                    try:
+                        module = importlib.import_module(fallback_module)
+                    except Exception as fallback_exc:
+                        raise TemplateImportError(
+                            "failed to import model module",
+                            import_path=raw_path,
+                            detail=str(fallback_exc),
+                        ) from fallback_exc
+            else:
+                raise TemplateImportError(
+                    "failed to import model module",
+                    import_path=raw_path,
+                    detail=str(exc),
+                ) from exc
+        except Exception as exc:
+            raise TemplateImportError(
+                "failed to import model module",
+                import_path=raw_path,
+                detail=str(exc),
+            ) from exc
 
     try:
         model_obj = getattr(module, class_name)
