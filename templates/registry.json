@@ -1,0 +1,24 @@
+{
+  "templates": {
+    "email_with_shared_header": {
+      "template_uri": "templates/email_with_shared_header/template.mako",
+      "model_import_path": "templateer.examples.models:EmailTemplateModel",
+      "description": "Demo email template that includes a shared header partial",
+      "tags": [
+        "demo",
+        "email"
+      ],
+      "readme_uri": "templates/email_with_shared_header/README.md"
+    },
+    "greeting": {
+      "template_uri": "templates/greeting/template.mako",
+      "model_import_path": "templateer.examples.models:GreetingModel",
+      "description": "Demo greeting template with an optional title",
+      "tags": [
+        "demo",
+        "greeting"
+      ],
+      "readme_uri": "templates/greeting/README.md"
+    }
+  }
+}

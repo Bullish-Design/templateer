@@ -2,12 +2,13 @@
 
 {
   # https://devenv.sh/basics/
-  env.GREET = "devenv";
+  env.GREET = "Templateer";
 
   # https://devenv.sh/packages/
-  packages = [ 
-    pkgs.git 
-    pkgs.uv
+  packages = with pkgs; [ 
+    git 
+    uv
+    just
     ];
 
   # https://devenv.sh/languages/
