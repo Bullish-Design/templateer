@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -17,6 +18,7 @@ class _RegistrySignature:
     mtime_ns: int
     size: int
     inode: int | None
+    digest: str
 
 
 class TemplateEnv:
@@ -53,6 +55,7 @@ class TemplateEnv:
     def _current_signature(self) -> _RegistrySignature:
         try:
             stat = self.registry_path.stat()
+            content = self.registry_path.read_bytes()
         except FileNotFoundError as exc:
             rel_path = self._path_for_message(self.registry_path)
             raise RegistryError(
@@ -65,6 +68,7 @@ class TemplateEnv:
             mtime_ns=stat.st_mtime_ns,
             size=stat.st_size,
             inode=getattr(stat, "st_ino", None),
+            digest=hashlib.blake2b(content, digest_size=16).hexdigest(),
         )
 
     def _load_registry(self) -> TemplateRegistry:
