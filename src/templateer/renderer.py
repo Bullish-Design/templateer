@@ -37,12 +37,17 @@ class _SafeTemplateLookup(TemplateLookup):
 
         return validate_template_uri(candidate, action=action)
 
+    def adjust_uri(self, uri: str, relativeto: str) -> str:  # type: ignore[override]
+        """Resolve include URIs using Mako's include hook."""
+
+        return self._resolve_template_uri(uri, relativeto, action="include")
+
     def get_template(self, uri: str, relativeto: str | None = None):  # type: ignore[override]
         action = "include" if relativeto is not None else "render"
         safe_uri = self._resolve_template_uri(uri, relativeto, action=action)
 
         try:
-            return super().get_template(safe_uri, relativeto=None)
+            return super().get_template(safe_uri)
         except TemplateRenderError:
             raise
         except Exception as exc:
