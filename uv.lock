@@ -281,7 +281,7 @@ wheels = [
 
 [[package]]
 name = "templateer"
-version = "0.3.2"
+version = "0.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
@@ -294,20 +294,16 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
-test = [
-    { name = "pytest" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "pydantic", specifier = ">=2.12.4" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
-    { name = "templateer", extras = ["test"], marker = "extra == 'dev'" },
 ]
-provides-extras = ["test", "dev"]
+provides-extras = ["dev"]
 
 [[package]]
 name = "typing-extensions"

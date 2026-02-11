@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "templateer"
-version = "0.3.2"
+version = "0.4.1"
 description = "A Pythoninc Pydantic ⇄ Jinja toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,11 +25,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = [
-    "pytest>=7.0.0",
-]
 dev = [
-    "templateer[test]",
+    "pytest>=7.0.0",
     "ruff>=0.1.0",
 ]
 
