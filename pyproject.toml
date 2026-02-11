@@ -19,15 +19,10 @@ classifiers = [
 ]
 
 dependencies = [
-    #"confidantic",
     "jinja2>=3.1.6",
     "pydantic>=2.12.4",
     "python-dotenv>=1.1.0",
 ]
-
-#[tool.uv.sources]
-#confidantic = { git = "https://github.com/Bullish-Design/confidantic.git" }
-
 
 [project.optional-dependencies]
 test = [
@@ -39,7 +34,7 @@ dev = [
 ]
 
 [project.scripts]
-demo = "examples.generate:main"
+mpt = "templateer.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/Bullish-Design/templateer"
@@ -49,24 +44,21 @@ Repository = "https://github.com/Bullish-Design/templateer"
 line-length = 120
 target-version = "py313"
 select = [
-    "E", "W",    # pycodestyle
-    "F",         # pyflakes
-    "I",         # isort
-    "N",         # pep8-naming
-    "UP",        # pyupgrade
-    "B",         # flake8-bugbear
+    "E", "W",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
 ]
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"
-testpaths = ["src/tests"]
+testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests (skipped without env)",
 ]
 filterwarnings = "ignore::DeprecationWarning"
 
-
 [tool.hatch.build.targets.wheel]
-packages = [ "src/templateer","src/examples"] # "src/tests", 
-
-
+packages = ["src/templateer"]
