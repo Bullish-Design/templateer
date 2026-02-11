@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from templateer.errors import ManifestError, RegistryError, TemplateError
-from templateer.manifest import TemplateManifest, _validate_model_import_path
+from templateer.manifest import TemplateManifest, _validate_model_import_path, load_manifest
 from templateer.uri import validate_template_uri
+
+_REQUIRED_TEMPLATE_FILES = ("template.mako", "manifest.json", "README.md")
 
 
 @dataclass(eq=True)
@@ -106,6 +110,111 @@ class TemplateRegistry:
         return json.dumps(self.model_dump(), indent=indent)
 
 
+def _as_project_relative(path: Path, project_root: Path) -> str:
+    try:
+        return path.relative_to(project_root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _ensure_required_template_files(project_root: Path, template_id: str, template_dir: Path) -> None:
+    missing = [name for name in _REQUIRED_TEMPLATE_FILES if not (template_dir / name).is_file()]
+    if missing:
+        raise RegistryError(
+            "template folder is missing required files",
+            template_id=template_id,
+            path=_as_project_relative(template_dir, project_root),
+            missing=",".join(missing),
+        )
+
+
+def build_registry(project_root: str | Path) -> TemplateRegistry:
+    """Build an in-memory registry by scanning ``templates/*`` folders.
+
+    The build is deterministic: template IDs are sorted lexicographically.
+    """
+
+    root = Path(project_root)
+    templates_dir = root / "templates"
+    if not templates_dir.is_dir():
+        raise RegistryError(
+            "templates directory does not exist",
+            path=_as_project_relative(templates_dir, root),
+        )
+
+    entries: dict[str, dict[str, Any]] = {}
+    for candidate in sorted(templates_dir.iterdir(), key=lambda path: path.name):
+        if not candidate.is_dir():
+            continue
+
+        template_id = candidate.name
+        if template_id == "_shared":
+            continue
+
+        _ensure_required_template_files(root, template_id, candidate)
+
+        manifest_path = candidate / "manifest.json"
+        try:
+            manifest = load_manifest(manifest_path)
+        except ManifestError as exc:
+            raise RegistryError(
+                "manifest validation failed while building registry",
+                template_id=template_id,
+                path=_as_project_relative(manifest_path, root),
+                detail=str(exc),
+            ) from exc
+
+        entries[template_id] = {
+            "template_uri": f"templates/{template_id}/template.mako",
+            "model_import_path": manifest.model_import_path,
+            "description": manifest.description,
+            "tags": manifest.tags,
+            "readme_uri": f"templates/{template_id}/README.md",
+        }
+
+    return TemplateRegistry.model_validate({"templates": entries})
+
+
+def dump_registry_atomically(registry: TemplateRegistry, path: str | Path) -> None:
+    """Write registry JSON to disk atomically using ``os.replace``."""
+
+    registry_path = Path(path)
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = registry.model_dump_json(indent=2) + "\n"
+    temp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=registry_path.parent,
+            prefix=f".{registry_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        os.replace(temp_name, registry_path)
+    finally:
+        if temp_name is not None:
+            temp_path = Path(temp_name)
+            if temp_path.exists():
+                temp_path.unlink()
+
+
+def build_registry_file(project_root: str | Path) -> Path:
+    """Build and persist ``templates/registry.json`` for a project root."""
+
+    root = Path(project_root)
+    registry = build_registry(root)
+    registry_path = root / "templates" / "registry.json"
+    dump_registry_atomically(registry, registry_path)
+    return registry_path
+
+
 def load_registry(path: str | Path) -> TemplateRegistry:
     """Load and validate the runtime registry JSON."""
 
@@ -126,6 +235,4 @@ def load_registry(path: str | Path) -> TemplateRegistry:
 def dump_registry(registry: TemplateRegistry, path: str | Path) -> None:
     """Write registry JSON to disk."""
 
-    registry_path = Path(path)
-    registry_path.parent.mkdir(parents=True, exist_ok=True)
-    registry_path.write_text(registry.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    dump_registry_atomically(registry, path)
