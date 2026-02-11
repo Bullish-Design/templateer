@@ -60,6 +60,10 @@ class TemplateImportError(TemplateError):
     """Raised when a configured model import fails."""
 
 
+class TemplateValidationError(TemplateError):
+    """Raised when user-provided template input does not validate."""
+
+
 class TemplateRenderError(TemplateError):
     """Raised when template rendering fails."""
 
