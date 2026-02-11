@@ -1,7 +1,7 @@
 # README.md
 # Templateer
 
-A minimal Python library for managing Jinja2 templates as Pydantic models.
+A minimal Python library for managing ~~Jinja2~~ Mako templates as Pydantic models. Checking in before kicking off refactor
 
 ## Installation
 
