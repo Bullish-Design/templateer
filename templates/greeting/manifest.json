@@ -1,0 +1,8 @@
+{
+  "model_import_path": "templateer.examples.models:GreetingModel",
+  "description": "Demo greeting template with an optional title",
+  "tags": [
+    "demo",
+    "greeting"
+  ]
+}

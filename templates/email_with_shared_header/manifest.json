@@ -1,0 +1,8 @@
+{
+  "model_import_path": "templateer.examples.models:EmailTemplateModel",
+  "description": "Demo email template that includes a shared header partial",
+  "tags": [
+    "demo",
+    "email"
+  ]
+}
