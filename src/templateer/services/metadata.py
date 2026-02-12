@@ -12,6 +12,13 @@ InputSourceKind = Literal["inline_json", "jsonl"]
 
 
 @dataclass(frozen=True)
+class RenderRunMetadata:
+    """Per-run metadata that can be enriched as pipeline stages complete."""
+
+    output_artifact_dir: Path | None = None
+
+
+@dataclass(frozen=True)
 class RenderAttemptMetadata:
     """Metadata for a single template render attempt."""
 
@@ -25,6 +32,7 @@ class RenderAttemptMetadata:
     error_type: str | None = None
     error_message: str | None = None
     error_details: str | None = None
+    run_metadata: RenderRunMetadata | None = None
 
 
 @dataclass(frozen=True)
@@ -44,4 +52,3 @@ class GenerationBatchResult:
     @property
     def failure(self) -> int:
         return self.total - self.success
-

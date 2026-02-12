@@ -81,6 +81,8 @@ def test_generate_single_returns_metadata(tmp_path: Path) -> None:
     assert metadata.line_number is None
     assert metadata.output_artifact_path is not None
     assert metadata.output_artifact_path.is_dir()
+    assert metadata.run_metadata is not None
+    assert metadata.run_metadata.output_artifact_dir == metadata.output_artifact_path
 
 
 def test_process_jsonl_inputs_returns_metadata_for_failed_rows(tmp_path: Path) -> None:
@@ -106,13 +108,19 @@ def test_process_jsonl_inputs_returns_metadata_for_failed_rows(tmp_path: Path) -
     by_line = {attempt.line_number: attempt for attempt in batch.attempts}
     assert by_line[1].success is True
     assert by_line[1].output_artifact_path is not None
+    assert by_line[1].run_metadata is not None
+    assert by_line[1].run_metadata.output_artifact_dir == by_line[1].output_artifact_path
 
     assert by_line[2].success is False
     assert by_line[2].error_type == "EmptyLine"
     assert by_line[2].error_message == "empty line"
+    assert by_line[2].run_metadata is not None
+    assert by_line[2].run_metadata.output_artifact_dir is None
 
     assert by_line[3].success is False
     assert by_line[3].error_type == "TemplateError"
     assert by_line[3].error_message is not None
     assert by_line[3].error_details == '{"name": 3}'
     assert by_line[3].input_path == jsonl_path
+    assert by_line[3].run_metadata is not None
+    assert by_line[3].run_metadata.output_artifact_dir is None

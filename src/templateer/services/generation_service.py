@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from templateer.env import TemplateEnv
 from templateer.errors import TemplateError
+from templateer.output import persist_render_result
 from templateer.services.input_service import parse_json_object
-from templateer.services.metadata import GenerationBatchResult, RenderAttemptMetadata
-from templateer.services.pipeline import (
-    persist_artifacts,
-    render_template_uri,
-    resolve_registry_entry,
-    validate_payload_with_model_import_path,
-)
+from templateer.services.metadata import GenerationBatchResult, RenderAttemptMetadata, RenderRunMetadata
+from templateer.services.pipeline import render_template_uri, resolve_registry_entry, validate_payload_with_model_import_path
+
+
+def render_template_id(env: TemplateEnv, template_id: str, payload: dict[str, object]) -> str:
+    """Render ``template_id`` for one payload after validation."""
+
+    entry = resolve_registry_entry(env, template_id)
+    context = validate_payload_with_model_import_path(payload, entry.model_import_path)
+    return render_template_uri(env, entry.template_uri, context)
 
 
 def generate_single(project_root: Path, template_id: str, payload: dict[str, object]) -> RenderAttemptMetadata:
@@ -23,13 +28,14 @@ def generate_single(project_root: Path, template_id: str, payload: dict[str, obj
 
     env = TemplateEnv(project_root)
     run_timestamp = datetime.now(timezone.utc)
+    run_metadata = RenderRunMetadata()
 
     try:
         rendered = render_template_id(env, template_id, payload)
         template_dir = project_root / "templates" / template_id
         gen_dir = template_dir / "gen"
         input_json = json.dumps(payload, indent=2) + "\n"
-        output_dir = write_generation_artifacts(gen_dir, input_json, rendered)
+        output_dir, run_metadata = persist_render_result(gen_dir, input_json, rendered, run_metadata)
         return RenderAttemptMetadata(
             template_id=template_id,
             run_timestamp=run_timestamp,
@@ -38,6 +44,7 @@ def generate_single(project_root: Path, template_id: str, payload: dict[str, obj
             line_number=None,
             output_artifact_path=output_dir,
             success=True,
+            run_metadata=run_metadata,
         )
     except (TemplateError, ValueError) as exc:
         return RenderAttemptMetadata(
@@ -50,13 +57,8 @@ def generate_single(project_root: Path, template_id: str, payload: dict[str, obj
             success=False,
             error_type=type(exc).__name__,
             error_message=str(exc),
+            run_metadata=run_metadata,
         )
-#     entry = resolve_registry_entry(env, template_id)
-#     context = validate_payload_with_model_import_path(payload, entry.model_import_path)
-#     rendered = render_template_uri(env, entry.template_uri, context)
-#     template_dir = project_root / "templates" / template_id
-#     gen_dir = template_dir / "gen"
-#     return persist_artifacts(gen_dir, payload, rendered)
 
 
 def process_jsonl_inputs(
@@ -73,7 +75,6 @@ def process_jsonl_inputs(
 
     attempts: list[RenderAttemptMetadata] = []
     env = TemplateEnv(project_root)
-    entry = resolve_registry_entry(env, template_id)
 
     with input_jsonl.open("r", encoding="utf-8") as handle:
         for line_number, raw_line in enumerate(handle, start=1):
@@ -91,6 +92,7 @@ def process_jsonl_inputs(
                         success=False,
                         error_type="EmptyLine",
                         error_message="empty line",
+                        run_metadata=RenderRunMetadata(),
                     )
                     attempts.append(metadata)
                     print(f"line {line_number}: empty line", file=stderr)
@@ -98,11 +100,12 @@ def process_jsonl_inputs(
                         break
                 continue
 
+            run_metadata = RenderRunMetadata()
             try:
                 payload = parse_json_object(line)
                 rendered = render_template_id(env, template_id, payload)
                 input_json = json.dumps(payload, indent=2) + "\n"
-                rendered_path = write_generation_artifacts(output_dir, input_json, rendered)
+                rendered_path, run_metadata = persist_render_result(output_dir, input_json, rendered, run_metadata)
                 attempts.append(
                     RenderAttemptMetadata(
                         template_id=template_id,
@@ -112,6 +115,7 @@ def process_jsonl_inputs(
                         line_number=line_number,
                         output_artifact_path=rendered_path,
                         success=True,
+                        run_metadata=run_metadata,
                     )
                 )
             except (TemplateError, ValueError) as exc:
@@ -127,6 +131,7 @@ def process_jsonl_inputs(
                         error_type=type(exc).__name__,
                         error_message=str(exc),
                         error_details=line,
+                        run_metadata=run_metadata,
                     )
                 )
                 print(f"line {line_number}: {exc}", file=stderr)

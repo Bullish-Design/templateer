@@ -9,9 +9,10 @@ from typing import Any
 
 from templateer.env import TemplateEnv
 from templateer.importers import import_model, parse_model_input_data
-from templateer.output import write_generation_artifacts
+from templateer.output import persist_render_result, write_generation_artifacts
 from templateer.registry import TemplateEntry
 from templateer.renderer import render_uri
+from templateer.services.metadata import RenderRunMetadata
 
 
 def resolve_registry_entry(env: TemplateEnv, template_id: str) -> TemplateEntry:
@@ -42,3 +43,15 @@ def persist_artifacts(base_dir: Path, payload: Mapping[str, Any], rendered_outpu
 
     input_json = json.dumps(dict(payload), indent=2) + "\n"
     return write_generation_artifacts(base_dir, input_json, rendered_output)
+
+
+def persist_artifacts_with_metadata(
+    base_dir: Path,
+    payload: Mapping[str, Any],
+    rendered_output: str,
+    run_metadata: RenderRunMetadata | None = None,
+) -> tuple[Path, RenderRunMetadata | None]:
+    """Write artifacts and optionally return enriched run metadata."""
+
+    input_json = json.dumps(dict(payload), indent=2) + "\n"
+    return persist_render_result(base_dir, input_json, rendered_output, run_metadata)
