@@ -15,6 +15,14 @@ from templateer.services.metadata import GenerationBatchResult, RenderAttemptMet
 from templateer.services.pipeline import render_template_uri, resolve_registry_entry, validate_payload_with_model_import_path
 
 
+def _classify_error_type(exc: Exception) -> str:
+    """Return stable error categories for render-attempt metadata."""
+
+    if isinstance(exc, TemplateError):
+        return "TemplateError"
+    return type(exc).__name__
+
+
 def render_template_id(env: TemplateEnv, template_id: str, payload: dict[str, object]) -> str:
     """Render ``template_id`` for one payload after validation."""
 
@@ -55,7 +63,7 @@ def generate_single(project_root: Path, template_id: str, payload: dict[str, obj
             line_number=None,
             output_artifact_path=None,
             success=False,
-            error_type=type(exc).__name__,
+            error_type=_classify_error_type(exc),
             error_message=str(exc),
             run_metadata=run_metadata,
         )
@@ -128,7 +136,7 @@ def process_jsonl_inputs(
                         line_number=line_number,
                         output_artifact_path=None,
                         success=False,
-                        error_type=type(exc).__name__,
+                        error_type=_classify_error_type(exc),
                         error_message=str(exc),
                         error_details=line,
                         run_metadata=run_metadata,
