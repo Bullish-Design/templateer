@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from templateer.env import TemplateEnv
 from templateer.errors import TemplateError
-from templateer.output import write_generation_artifacts
-from templateer.renderer import render_template_id
 from templateer.services.input_service import parse_json_object
 from templateer.services.metadata import GenerationBatchResult, RenderAttemptMetadata
+from templateer.services.pipeline import (
+    persist_artifacts,
+    render_template_uri,
+    resolve_registry_entry,
+    validate_payload_with_model_import_path,
+)
 
 
 def generate_single(project_root: Path, template_id: str, payload: dict[str, object]) -> RenderAttemptMetadata:
@@ -48,6 +51,12 @@ def generate_single(project_root: Path, template_id: str, payload: dict[str, obj
             error_type=type(exc).__name__,
             error_message=str(exc),
         )
+#     entry = resolve_registry_entry(env, template_id)
+#     context = validate_payload_with_model_import_path(payload, entry.model_import_path)
+#     rendered = render_template_uri(env, entry.template_uri, context)
+#     template_dir = project_root / "templates" / template_id
+#     gen_dir = template_dir / "gen"
+#     return persist_artifacts(gen_dir, payload, rendered)
 
 
 def process_jsonl_inputs(
@@ -64,6 +73,7 @@ def process_jsonl_inputs(
 
     attempts: list[RenderAttemptMetadata] = []
     env = TemplateEnv(project_root)
+    entry = resolve_registry_entry(env, template_id)
 
     with input_jsonl.open("r", encoding="utf-8") as handle:
         for line_number, raw_line in enumerate(handle, start=1):
