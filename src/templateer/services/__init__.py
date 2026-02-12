@@ -2,6 +2,7 @@
 
 from templateer.services.generation_service import generate_examples, generate_single, process_jsonl_inputs
 from templateer.services.input_service import parse_json_object
+from templateer.services.metadata import GenerationBatchResult, RenderAttemptMetadata
 from templateer.services.pipeline import (
     persist_artifacts,
     render_template_uri,
@@ -20,6 +21,8 @@ __all__ = [
     "render_template_uri",
     "persist_artifacts",
     "process_jsonl_inputs",
+    "GenerationBatchResult",
+    "RenderAttemptMetadata",
     "resolve_project_root",
     "template_dir",
     "scaffold_template",

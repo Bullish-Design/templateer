@@ -66,3 +66,53 @@ def test_generate_examples_writes_one_timestamped_dir_per_jsonl_object(tmp_path:
     outputs = {(path / "output.txt").read_text(encoding="utf-8") for path in generated}
     assert "Hello Ada!\n" in outputs
     assert "Hello Grace!\n(Rear Admiral)\n" in outputs
+
+
+def test_generate_single_returns_metadata(tmp_path: Path) -> None:
+    from templateer.services.generation_service import generate_single
+
+    _setup_project(tmp_path)
+    metadata = generate_single(tmp_path, "greeting", {"name": "Ada"})
+
+    assert metadata.success is True
+    assert metadata.template_id == "greeting"
+    assert metadata.input_source_kind == "inline_json"
+    assert metadata.input_path is None
+    assert metadata.line_number is None
+    assert metadata.output_artifact_path is not None
+    assert metadata.output_artifact_path.is_dir()
+
+
+def test_process_jsonl_inputs_returns_metadata_for_failed_rows(tmp_path: Path) -> None:
+    from templateer.services.generation_service import process_jsonl_inputs
+
+    _setup_project(tmp_path)
+    jsonl_path = tmp_path / "inputs.jsonl"
+    jsonl_path.write_text('{"name":"Ada"}\n\n{"name": 3}\n', encoding="utf-8")
+    output_dir = tmp_path / "out"
+
+    batch = process_jsonl_inputs(
+        tmp_path,
+        "greeting",
+        jsonl_path,
+        output_dir=output_dir,
+        count_empty_as_failure=True,
+    )
+
+    assert batch.total == 3
+    assert batch.success == 1
+    assert batch.failure == 2
+
+    by_line = {attempt.line_number: attempt for attempt in batch.attempts}
+    assert by_line[1].success is True
+    assert by_line[1].output_artifact_path is not None
+
+    assert by_line[2].success is False
+    assert by_line[2].error_type == "EmptyLine"
+    assert by_line[2].error_message == "empty line"
+
+    assert by_line[3].success is False
+    assert by_line[3].error_type == "TemplateError"
+    assert by_line[3].error_message is not None
+    assert by_line[3].error_details == '{"name": 3}'
+    assert by_line[3].input_path == jsonl_path

@@ -66,14 +66,17 @@ def app(argv: list[str] | None = None) -> int:
 
         if args.command == "generate":
             payload = parse_json_object(args.input_json)
-            output_dir = generate_single(Path(args.project_root), args.template_id, payload)
-            print(output_dir)
-            return 0
+            metadata = generate_single(Path(args.project_root), args.template_id, payload)
+            if metadata.success:
+                print(metadata.output_artifact_path)
+                return 0
+            print(metadata.error_message, file=sys.stderr)
+            return 1
 
         if args.command == "generate-examples":
-            success, failure = generate_examples(Path(args.project_root), args.template_id)
-            print(f"Processed examples: success={success}, failure={failure}")
-            return 1 if failure else 0
+            batch = generate_examples(Path(args.project_root), args.template_id)
+            print(f"Processed examples: success={batch.success}, failure={batch.failure}")
+            return 1 if batch.failure else 0
 
         parser.print_help()
         return 0
