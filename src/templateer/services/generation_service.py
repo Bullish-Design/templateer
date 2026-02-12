@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from templateer.env import TemplateEnv
@@ -11,17 +12,42 @@ from templateer.errors import TemplateError
 from templateer.output import write_generation_artifacts
 from templateer.renderer import render_template_id
 from templateer.services.input_service import parse_json_object
+from templateer.services.metadata import GenerationBatchResult, RenderAttemptMetadata
 
 
-def generate_single(project_root: Path, template_id: str, payload: dict[str, object]) -> Path:
+def generate_single(project_root: Path, template_id: str, payload: dict[str, object]) -> RenderAttemptMetadata:
     """Render one payload for a template and persist generation artifacts."""
 
     env = TemplateEnv(project_root)
-    rendered = render_template_id(env, template_id, payload)
-    template_dir = project_root / "templates" / template_id
-    gen_dir = template_dir / "gen"
-    input_json = json.dumps(payload, indent=2) + "\n"
-    return write_generation_artifacts(gen_dir, input_json, rendered)
+    run_timestamp = datetime.now(timezone.utc)
+
+    try:
+        rendered = render_template_id(env, template_id, payload)
+        template_dir = project_root / "templates" / template_id
+        gen_dir = template_dir / "gen"
+        input_json = json.dumps(payload, indent=2) + "\n"
+        output_dir = write_generation_artifacts(gen_dir, input_json, rendered)
+        return RenderAttemptMetadata(
+            template_id=template_id,
+            run_timestamp=run_timestamp,
+            input_source_kind="inline_json",
+            input_path=None,
+            line_number=None,
+            output_artifact_path=output_dir,
+            success=True,
+        )
+    except (TemplateError, ValueError) as exc:
+        return RenderAttemptMetadata(
+            template_id=template_id,
+            run_timestamp=run_timestamp,
+            input_source_kind="inline_json",
+            input_path=None,
+            line_number=None,
+            output_artifact_path=None,
+            success=False,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
 
 
 def process_jsonl_inputs(
@@ -33,24 +59,30 @@ def process_jsonl_inputs(
     fail_fast: bool = False,
     count_empty_as_failure: bool = False,
     stderr: object = sys.stderr,
-) -> tuple[int, int, int]:
-    """Render one template for each JSON object line in a JSONL file.
+) -> GenerationBatchResult:
+    """Render one template for each JSON object line in a JSONL file."""
 
-    Returns a ``(total, success, failure)`` tuple.
-    """
-
-    total = 0
-    success = 0
-    failure = 0
+    attempts: list[RenderAttemptMetadata] = []
     env = TemplateEnv(project_root)
 
     with input_jsonl.open("r", encoding="utf-8") as handle:
         for line_number, raw_line in enumerate(handle, start=1):
-            total += 1
+            run_timestamp = datetime.now(timezone.utc)
             line = raw_line.strip()
             if not line:
                 if count_empty_as_failure:
-                    failure += 1
+                    metadata = RenderAttemptMetadata(
+                        template_id=template_id,
+                        run_timestamp=run_timestamp,
+                        input_source_kind="jsonl",
+                        input_path=input_jsonl,
+                        line_number=line_number,
+                        output_artifact_path=None,
+                        success=False,
+                        error_type="EmptyLine",
+                        error_message="empty line",
+                    )
+                    attempts.append(metadata)
                     print(f"line {line_number}: empty line", file=stderr)
                     if fail_fast:
                         break
@@ -60,29 +92,48 @@ def process_jsonl_inputs(
                 payload = parse_json_object(line)
                 rendered = render_template_id(env, template_id, payload)
                 input_json = json.dumps(payload, indent=2) + "\n"
-                write_generation_artifacts(output_dir, input_json, rendered)
-                success += 1
+                rendered_path = write_generation_artifacts(output_dir, input_json, rendered)
+                attempts.append(
+                    RenderAttemptMetadata(
+                        template_id=template_id,
+                        run_timestamp=run_timestamp,
+                        input_source_kind="jsonl",
+                        input_path=input_jsonl,
+                        line_number=line_number,
+                        output_artifact_path=rendered_path,
+                        success=True,
+                    )
+                )
             except (TemplateError, ValueError) as exc:
-                failure += 1
+                attempts.append(
+                    RenderAttemptMetadata(
+                        template_id=template_id,
+                        run_timestamp=run_timestamp,
+                        input_source_kind="jsonl",
+                        input_path=input_jsonl,
+                        line_number=line_number,
+                        output_artifact_path=None,
+                        success=False,
+                        error_type=type(exc).__name__,
+                        error_message=str(exc),
+                        error_details=line,
+                    )
+                )
                 print(f"line {line_number}: {exc}", file=stderr)
                 if fail_fast:
                     break
 
-    return total, success, failure
+    return GenerationBatchResult(attempts=tuple(attempts))
 
 
-def generate_examples(project_root: Path, template_id: str) -> tuple[int, int]:
-    """Render built-in sample_inputs.jsonl for a template.
-
-    Returns a ``(success, failure)`` tuple.
-    """
+def generate_examples(project_root: Path, template_id: str) -> GenerationBatchResult:
+    """Render built-in sample_inputs.jsonl for a template."""
 
     template_dir = project_root / "templates" / template_id
     examples_jsonl = template_dir / "examples" / "sample_inputs.jsonl"
-    _total, success, failure = process_jsonl_inputs(
+    return process_jsonl_inputs(
         project_root,
         template_id,
         examples_jsonl,
         output_dir=template_dir / "examples",
     )
-    return success, failure

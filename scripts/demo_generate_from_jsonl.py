@@ -38,7 +38,7 @@ def app(argv: list[str] | None = None) -> int:
         output_dir = project_root / "templates" / args.template_id / "gen"
 
     try:
-        total, success, failure = process_jsonl_inputs(
+        batch = process_jsonl_inputs(
             project_root,
             args.template_id,
             args.input_jsonl,
@@ -50,8 +50,8 @@ def app(argv: list[str] | None = None) -> int:
         print(f"failed to read {args.input_jsonl}: {exc}", file=sys.stderr)
         return 1
 
-    print(f"Processed {total} line(s): success={success}, failure={failure}")
-    return 1 if failure else 0
+    print(f"Processed {batch.total} line(s): success={batch.success}, failure={batch.failure}")
+    return 1 if batch.failure else 0
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def test_step_02_generate_examples_success_and_failure_counts(tmp_path: Path) ->
     examples_dir.mkdir(parents=True, exist_ok=True)
     (examples_dir / "sample_inputs.jsonl").write_text('{"name":"Ada"}\n{"name": 3}\n', encoding="utf-8")
 
-    success, failure = generate_examples(tmp_path, "greeting")
+    batch = generate_examples(tmp_path, "greeting")
 
-    assert success == 1
-    assert failure == 1
+    assert batch.success == 1
+    assert batch.failure == 1
